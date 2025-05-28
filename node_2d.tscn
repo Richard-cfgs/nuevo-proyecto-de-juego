@@ -1,0 +1,97 @@
+[gd_scene load_steps=10 format=3 uid="uid://c1qhd4tkrtbpx"]
+
+[ext_resource type="Texture2D" uid="uid://bfhh224pdsri4" path="res://Icons/icons8-check-mark-50.png" id="1_wtcfe"]
+[ext_resource type="Texture2D" uid="uid://rf51vx5plud1" path="res://Icons/icons8-google-play-2.svg" id="2_epypp"]
+[ext_resource type="Script" path="res://scripts/ButtonScripts/RunButton.cs" id="3_kdubu"]
+[ext_resource type="Texture2D" uid="uid://brj2ib5tbndcs" path="res://Icons/icons8-add-bookmark-2.svg" id="3_q6r6c"]
+[ext_resource type="Texture2D" uid="uid://dvvpxsm26qg77" path="res://Icons/icons8-importar-50.png" id="4_kdubu"]
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_0hol4"]
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_q6r6c"]
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_kdubu"]
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_d21ai"]
+
+[node name="Main" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="BackGround" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.0238547, 2.40654e-08, 0.300447, 1)
+
+[node name="Principal" type="HBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 10
+
+[node name="Panel" type="Panel" parent="Principal"]
+custom_minimum_size = Vector2(88, 0)
+layout_mode = 2
+
+[node name="Left" type="VBoxContainer" parent="Principal/Panel"]
+layout_mode = 2
+offset_right = 88.0
+offset_bottom = 648.0
+grow_vertical = 2
+size_flags_horizontal = 0
+size_flags_vertical = 3
+theme_override_constants/separation = 30
+
+[node name="Label" type="Label" parent="Principal/Panel/Left"]
+layout_mode = 2
+text = "Pixel-Wall
+"
+
+[node name="Button" type="Button" parent="Principal/Panel/Left"]
+layout_mode = 2
+theme_override_styles/normal = SubResource("StyleBoxEmpty_0hol4")
+icon = ExtResource("1_wtcfe")
+icon_alignment = 1
+
+[node name="RunButton" type="Button" parent="Principal/Panel/Left"]
+layout_mode = 2
+theme_override_styles/normal = SubResource("StyleBoxEmpty_q6r6c")
+icon = ExtResource("2_epypp")
+icon_alignment = 1
+script = ExtResource("3_kdubu")
+
+[node name="Button3" type="Button" parent="Principal/Panel/Left"]
+layout_mode = 2
+theme_override_styles/normal = SubResource("StyleBoxEmpty_kdubu")
+icon = ExtResource("4_kdubu")
+icon_alignment = 1
+
+[node name="Button4" type="Button" parent="Principal/Panel/Left"]
+layout_mode = 2
+theme_override_styles/normal = SubResource("StyleBoxEmpty_d21ai")
+icon = ExtResource("3_q6r6c")
+icon_alignment = 1
+
+[node name="Right" type="HBoxContainer" parent="Principal"]
+custom_minimum_size = Vector2(1000, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="CodeEdit" type="CodeEdit" parent="Principal/Right"]
+custom_minimum_size = Vector2(400, 0)
+layout_mode = 2
+size_flags_horizontal = 0
+gutters_draw_line_numbers = true
