@@ -8,9 +8,6 @@ namespace PixelWallE.Core
 {
     public class Lexer
     {
-        private string _input; //codigo
-        private int _line; //linea actual
-        private int _position; //posicion actual
         private static readonly Dictionary<string, string> _keywords = new Dictionary<string, string>
         {
             // ===== COMANDOS BÁSICOS =====
@@ -34,13 +31,7 @@ namespace PixelWallE.Core
             // ===== CONTROL DE FLUJO =====
             { "GoTo", "CONTROL_FLOW" }
         };
-        public Lexer(string input)
-        {
-            _input = input;
-            _line = 1;
-            _position = 0;
-        }
-        public static List<Token> Tokenize(string input)
+        public List<Token> Tokenize(string input)
         {
             List<Token> tokens = new List<Token>();
             int position = 0;
@@ -125,11 +116,6 @@ namespace PixelWallE.Core
                 // Manejar errores
                 Console.WriteLine($"Error en línea {line}: Carácter inválido '{currentChar}'");
                 position++;
-            }
-
-            foreach (Token n in tokens)
-            {
-                GD.Print($"{n.Type} {n.Value} {n.Line} \n");
             }
             return tokens;
         }

@@ -2,6 +2,7 @@ using System;
 
 namespace PixelWallE.Core
 {
+    //todos los tipos de expresiones
     public class Expressions
     {
         public abstract class Expression { }
@@ -26,10 +27,12 @@ namespace PixelWallE.Core
         public class ArithmeticExpression : Expression
         {
             public Expression Left { get; }
+            public string Operation { get; }
             public Expression Right { get; }
-            public ArithmeticExpression(Expression left, Expression right)
+            public ArithmeticExpression(Expression left, string operation, Expression right)
             {
                 Left = left;
+                Operation = operation;
                 Right = right;
             }
         }

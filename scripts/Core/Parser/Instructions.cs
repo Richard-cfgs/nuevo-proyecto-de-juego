@@ -3,6 +3,7 @@ using Godot;
 
 namespace PixelWallE.Core
 {
+    //todos los tipos de intrucciones
     public class Instructions
     {
         public abstract class Instruction { }
@@ -50,6 +51,12 @@ namespace PixelWallE.Core
                 Y = y;
                 D = d;
             }
+        }
+        public class DrawCircle : Instruction
+        {
+            public Expressions.Expression X { get; }
+            public Expressions.Expression Y { get; }
+            public Expressions.Expression D { get; }
         }
 
         public class Assignment : Instruction
