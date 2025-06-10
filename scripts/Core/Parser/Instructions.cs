@@ -1,75 +1,82 @@
 using System;
-using Godot;
-
+using System.Collections.Generic;
+using Godot.NativeInterop;
+using PixelWallE.Core;
 namespace PixelWallE.Core
 {
     //todos los tipos de intrucciones
     public class Instructions
     {
-        public abstract class Instruction { }
-        public class Spawn : Instruction
+        public abstract class Statement
         {
-            public Expressions.Expression X { get; }
-            public Expressions.Expression Y { get; }
-
-            public Spawn(Expressions.Expression x, Expressions.Expression y)
-            {
-                X = x;
-                Y = y;
-            }
+            public int Line;
+        }
+        public class SpawnCommand : Statement
+        {
+            public Expressions.Expression X;
+            public Expressions.Expression Y;
         }
 
-        public class Color : Instruction
+        public class ColorCommand : Statement
         {
-            public Expressions.Expression color { get; }
-
-            public Color(Expressions.Expression color)
-            {
-                this.color = color;
-            }
+            public string Color;
         }
 
-        public class Size : Instruction
+        public class SizeCommand : Statement
         {
-            public Expressions.Expression size { get; }
-
-            public Size(Expressions.Expression size)
-            {
-                this.size = size;
-            }
+            public Expressions.Expression Size;
         }
 
-        public class DrawLine : Instruction
+        public class DrawLineCommand : Statement
         {
-            public Expressions.Expression X { get; }
-            public Expressions.Expression Y { get; }
-            public Expressions.Expression D { get; }
-
-            public DrawLine(Expressions.Expression x, Expressions.Expression y, Expressions.Expression d)
-            {
-                X = x;
-                Y = y;
-                D = d;
-            }
-        }
-        public class DrawCircle : Instruction
-        {
-            public Expressions.Expression X { get; }
-            public Expressions.Expression Y { get; }
-            public Expressions.Expression D { get; }
+            public Expressions.Expression DirX;
+            public Expressions.Expression DirY;
+            public Expressions.Expression Distance;
         }
 
-        public class Assignment : Instruction
+        public class DrawCircleCommand : Statement
         {
-            public string VariableName { get; }
-            public Expressions.Expression Expression { get; }
-
-            public Assignment(string variableName, Expressions.Expression expression)
-            {
-                VariableName = variableName;
-                Expression = expression;
-            }
+            public Expressions.Expression DirX;
+            public Expressions.Expression DirY;
+            public Expressions.Expression Radius;
         }
+
+        public class DrawRectangleCommand : Statement
+        {
+            public Expressions.Expression DirX;
+            public Expressions.Expression DirY;
+            public Expressions.Expression Distance;
+            public Expressions.Expression Width;
+            public Expressions.Expression Height;
+        }
+
+        public class FillCommand : Statement
+        {
+            // No necesita argumentos
+        }
+
+        public class Assignment : Statement
+        {
+            public string VariableName;
+            public Expressions.Expression Value;
+        }
+
+        public class GoToCommand : Statement
+        {
+            public string Label;
+            public Expressions.Expression Condition;
+        }
+
+        public class LabelDeclaration : Statement
+        {
+            public string Name;
+        }
+        public class InstructionSignature
+        {
+            public int ExpectedCount;
+            public List<string> ExpectedTypes;
+        }
+
     }
 }
 

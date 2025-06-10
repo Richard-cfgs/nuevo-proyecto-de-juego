@@ -21,6 +21,6 @@ public partial class RunButton : Button
 		//Obtener texto del CodeEdit
 		string code = _codeEdit.Text;
 		//LLamar a la clase Lexer
-		Lexer.Tokenize(code);
+		new Lexer(code);
 	}
 }

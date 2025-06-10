@@ -10,7 +10,7 @@ namespace PixelWallE.Core
     {
         private static readonly Dictionary<string, string> _keywords = new Dictionary<string, string>
         {
-            // ===== COMANDOS BÁSICOS =====
+            //Instrucciones
             { "Spawn", "KEYWORD" },
             { "Color", "KEYWORD" },
             { "Size", "KEYWORD" },
@@ -19,7 +19,7 @@ namespace PixelWallE.Core
             { "DrawRectangle", "KEYWORD" },
             { "Fill", "KEYWORD" },
 
-            // ===== FUNCIONES =====
+            //funciones
             { "GetActualX", "FUNCTION" },
             { "GetActualY", "FUNCTION" },
             { "GetCanvasSize", "FUNCTION" },
@@ -28,14 +28,29 @@ namespace PixelWallE.Core
             { "IsBrushSize", "FUNCTION" },
             { "IsCanvasColor", "FUNCTION" },
 
-            // ===== CONTROL DE FLUJO =====
-            { "GoTo", "CONTROL_FLOW" }
+            //Control de flujo
+            { "GoTo", "CONTROL_FLOW" },
+
+            //Colores
+            { "Red", "COLOR" },
+            { "Blue", "COLOR" },
+            { "Green", "COLOR" },
+            { "Yellow", "COLOR" },
+            { "Orange", "COLOR" },
+            { "Purple", "COLOR" },
+            { "Black", "COLOR" },
+            { "White", "COLOR" },
+            { "Transparent", "COLOR" },
         };
-        public List<Token> Tokenize(string input)
+        public Lexer(string input)
         {
             List<Token> tokens = new List<Token>();
             int position = 0;
             int line = 1;
+            Tokenize(input, tokens, position, line);
+        }
+        public static List<Token> Tokenize(string input, List<Token> tokens, int position, int line)
+        {
             while (position < input.Length)
             {
                 char currentChar = input[position];
@@ -64,22 +79,19 @@ namespace PixelWallE.Core
                 if ((currentChar >= 'A' && currentChar <= 'Z') || (currentChar >= 'a' && currentChar <= 'z'))
                 {
                     string word = "";
-                    while (position < input.Length && ((currentChar >= 'A' && currentChar <= 'Z') || (currentChar >= 'a' && currentChar <= 'z') || (currentChar >= '0' && currentChar <= '9') || currentChar == '-' || currentChar == '_'))
+                    while (position < input.Length && ((currentChar >= 'A' && currentChar <= 'Z') || (currentChar >= 'a' && currentChar <= 'z') || (currentChar >= '0' && currentChar <= '9') || currentChar == '-'))
                     {
                         word += input[position];
                         position++;
                         currentChar = input[position];
                     }
-                    if (_keywords.TryGetValue(word, out string tokenType))
-                        tokens.Add(new Token(tokenType, word, line));
-                    else
-                        tokens.Add(new Token("VARIABLE", word, line));
-
+                    if (_keywords.TryGetValue(word, out string tokenType)) tokens.Add(new Token(tokenType, word, line));
+                    else tokens.Add(new Token("VARIABLE", word, line));
                     continue;
                 }
 
                 // Identificar símbolos
-                if (currentChar == '(' || currentChar == ')' || currentChar == ',' || currentChar == '[' || currentChar == ']' || currentChar == '"')
+                if (currentChar == '(' || currentChar == ')' || currentChar == ',' || currentChar == '[' || currentChar == ']')
                 {
                     tokens.Add(new Token("SYMBOL", currentChar.ToString(), line));
                     position++;
@@ -90,7 +102,7 @@ namespace PixelWallE.Core
                 {
                     //identificar potencia
                     if ((position + 1 < input.Length) && currentChar == '*' && input[position + 1] == '*') { tokens.Add(new Token("Operation", "**", line)); position++; }
-                    else tokens.Add(new Token("Operation", currentChar.ToString(), line));
+                    else tokens.Add(new Token("OPERATION", currentChar.ToString(), line));
                     position++;
                     continue;
                 }
@@ -100,7 +112,7 @@ namespace PixelWallE.Core
                     string opera = input[position].ToString() + input[position + 1].ToString();
                     if (opera == "==" || opera == ">=" || opera == "<=" || opera == ">" || opera == "<")
                     {
-                        tokens.Add(new Token("Operation", opera, line));
+                        tokens.Add(new Token("BOOLOPERATION", opera, line));
                         position += 2;
                         continue;
                     }
@@ -109,7 +121,7 @@ namespace PixelWallE.Core
                 //Asignar Variables
                 if (position + 1 < input.Length && currentChar == '<' && input[position + 1] == '-')
                 {
-                    tokens.Add(new Token("Assignment", "<-", line));
+                    tokens.Add(new Token("ASSIGMENT", "<-", line));
                     position += 2;
                     continue;
                 }

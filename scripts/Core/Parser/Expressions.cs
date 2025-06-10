@@ -1,40 +1,42 @@
 using System;
+using System.Collections.Generic;
 
 namespace PixelWallE.Core
 {
     //todos los tipos de expresiones
     public class Expressions
     {
-        public abstract class Expression { }
-        public class Number : Expression
+        public abstract class Expression
         {
-            public string Value { get; }
-            public Number(string value)
-            {
-                Value = value;
-            }
+            public int Line;
+        }
+        public class NumberLiteral : Expression
+        {
+            public int Value;
         }
 
-        public class Variable : Expression
+        public class VariableReference : Expression
         {
-            public string Name { get; }
+            public string Name;
+        }
 
-            public Variable(string name)
-            {
-                Name = name;
-            }
-        }
-        public class ArithmeticExpression : Expression
+        public class BinaryExpression : Expression
         {
-            public Expression Left { get; }
-            public string Operation { get; }
-            public Expression Right { get; }
-            public ArithmeticExpression(Expression left, string operation, Expression right)
-            {
-                Left = left;
-                Operation = operation;
-                Right = right;
-            }
+            public string Operator;
+            public Expression Left;
+            public Expression Right;
         }
+
+        public class FunctionCall : Expression
+        {
+            public string FunctionName;
+            public List<Expression> Arguments;
+        }
+        public class FunctionSignature
+        {
+            public int ExpectedCount;
+            public List<string> ExpectedTypes;
+        }
+
     }
 }
