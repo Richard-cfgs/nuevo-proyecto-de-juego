@@ -51,16 +51,7 @@ namespace PixelWallE.Core
             Errors = new();
             int position = 0;
             int line = 1;
-            //new Parser(Tokenize(input, tokens, position, line));
-            Tokenize(input, tokens, position, line);
-            foreach (string error in Errors)
-            {
-                GD.Print(error);
-            }
-            foreach (var token in tokens)
-            {
-                GD.Print($"Tipo: {token.Type}, Valor: '{token.Value}', Línea: {token.Line}");
-            }
+            new Parser(Tokenize(input, tokens, position, line));
         }
         public List<Token> Tokenize(string input, List<Token> tokens, int position, int line)
         {
