@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
+using System.Formats.Tar;
 using System.Text.RegularExpressions;
 using Godot;
 using Godot.NativeInterop;
@@ -8,10 +10,11 @@ namespace PixelWallE.Core
 {
     public class Lexer
     {
-        private static readonly Dictionary<string, string> _keywords = new Dictionary<string, string>
+        private List<string> Errors;
+        public static readonly Dictionary<string, string> _keywords = new Dictionary<string, string>
         {
-            //Instrucciones
-            { "Spawn", "KEYWORD" },
+			//Instrucciones
+			{ "Spawn", "KEYWORD" },
             { "Color", "KEYWORD" },
             { "Size", "KEYWORD" },
             { "DrawLine", "KEYWORD" },
@@ -19,8 +22,8 @@ namespace PixelWallE.Core
             { "DrawRectangle", "KEYWORD" },
             { "Fill", "KEYWORD" },
 
-            //funciones
-            { "GetActualX", "FUNCTION" },
+			//funciones
+			{ "GetActualX", "FUNCTION" },
             { "GetActualY", "FUNCTION" },
             { "GetCanvasSize", "FUNCTION" },
             { "GetColorCount", "FUNCTION" },
@@ -28,11 +31,11 @@ namespace PixelWallE.Core
             { "IsBrushSize", "FUNCTION" },
             { "IsCanvasColor", "FUNCTION" },
 
-            //Control de flujo
-            { "GoTo", "CONTROL_FLOW" },
+			//Control de flujo
+			{ "GoTo", "CONTROL_FLOW" },
 
-            //Colores
-            { "Red", "COLOR" },
+			//Colores
+			{ "Red", "COLOR" },
             { "Blue", "COLOR" },
             { "Green", "COLOR" },
             { "Yellow", "COLOR" },
@@ -45,11 +48,21 @@ namespace PixelWallE.Core
         public Lexer(string input)
         {
             List<Token> tokens = new List<Token>();
+            Errors = new();
             int position = 0;
             int line = 1;
+            //new Parser(Tokenize(input, tokens, position, line));
             Tokenize(input, tokens, position, line);
+            foreach (string error in Errors)
+            {
+                GD.Print(error);
+            }
+            foreach (var token in tokens)
+            {
+                GD.Print($"Tipo: {token.Type}, Valor: '{token.Value}', Línea: {token.Line}");
+            }
         }
-        public static List<Token> Tokenize(string input, List<Token> tokens, int position, int line)
+        public List<Token> Tokenize(string input, List<Token> tokens, int position, int line)
         {
             while (position < input.Length)
             {
@@ -119,14 +132,14 @@ namespace PixelWallE.Core
                 }
 
                 //Asignar Variables
-                if (position + 1 < input.Length && currentChar == '<' && input[position + 1] == '-')
+                if (position + 1 < input.Length && currentChar == '<' && input[position + 1] == '_')
                 {
                     tokens.Add(new Token("ASSIGMENT", "<-", line));
                     position += 2;
                     continue;
                 }
                 // Manejar errores
-                Console.WriteLine($"Error en línea {line}: Carácter inválido '{currentChar}'");
+                Errors.Add($"LexError (Línea {line}): Carácter inválido {currentChar}");
                 position++;
             }
             return tokens;

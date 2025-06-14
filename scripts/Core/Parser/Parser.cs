@@ -9,13 +9,15 @@ namespace PixelWallE.Core
         private readonly List<Token> tokens;
         private List<string> Errors;
         private Dictionary<string, int> Labels;
-        private int position = 0;
+        private int position;
 
         public Parser(List<Token> tokens)
         {
             this.tokens = tokens;
             Errors = new();
             Labels = new();
+            position = 0;
+            new Interprete(Parse(), Labels);
         }
 
         public List<Instructions.Statement> Parse()
@@ -91,7 +93,7 @@ namespace PixelWallE.Core
             Token keyword = Advance(); // Avanza y toma el nombre de la instrucción
             int line = keyword.Line;
 
-            if (!Dictionarys.InstructionSignatures.TryGetValue(keyword.Value, out Instructions.InstructionSignature signature))
+            if (!Dictionarys.InstructionSignatures.TryGetValue(keyword.Value, out int count))
             {
                 Errors.Add($"Línea {line}: instrucción desconocida '{keyword.Value}'");
                 return null;
@@ -114,22 +116,12 @@ namespace PixelWallE.Core
             Consume("SYMBOL", ")", line);
 
             // Validación de cantidad
-            if (args.Count != signature.ExpectedCount)
+            if (args.Count != count)
             {
-                Errors.Add($"Línea {line}: '{keyword.Value}' espera {signature.ExpectedCount} argumentos, pero recibió {args.Count}.");
+                Errors.Add($"Línea {line}: '{keyword.Value}' espera {count} argumentos, pero recibió {args.Count}.");
                 return null;
             }
 
-            // Validación de tipo
-            for (int i = 0; i < args.Count; i++)
-            {
-                string expected = signature.ExpectedTypes[i];
-                if (!ArgumentType(args[i], expected))
-                {
-                    Errors.Add($"Línea {line}: El argumento {i + 1} de '{keyword.Value}' debe ser de tipo '{expected}'.");
-                    return null;
-                }
-            }
             switch (keyword.Value)
             {
                 case "Spawn":
@@ -220,23 +212,10 @@ namespace PixelWallE.Core
             Consume("SYMBOL", ")", functionNameToken.Line);
 
             // Validación semántica (cantidad y tipo de argumentos)
-            if (Dictionarys.FunctionSignatures.TryGetValue(functionNameToken.Value, out Expressions.FunctionSignature signature))
+            if (Dictionarys.FunctionSignatures.TryGetValue(functionNameToken.Value, out int count))
             {
-                if (arguments.Count != signature.ExpectedCount)
-                {
-                    Errors.Add($"Línea {functionNameToken.Line}: la función '{functionNameToken.Value}' espera {signature.ExpectedCount} argumentos, pero recibió {arguments.Count}.");
-                }
-                else
-                {
-                    for (int i = 0; i < arguments.Count; i++)
-                    {
-                        string expected = signature.ExpectedTypes[i];
-                        if (!ArgumentType(arguments[i], expected))
-                        {
-                            Errors.Add($"Línea {functionNameToken.Line}: el argumento {i + 1} de '{functionNameToken.Value}' debe ser de tipo '{expected}'.");
-                        }
-                    }
-                }
+                if (arguments.Count != count)
+                    Errors.Add($"Línea {functionNameToken.Line}: la función '{functionNameToken.Value}' espera {count} argumentos, pero recibió {arguments.Count}.");
             }
 
             return new Expressions.FunctionCall
@@ -257,7 +236,7 @@ namespace PixelWallE.Core
         {
             Token varriableName = Advance();
             int line = varriableName.Line;
-            Consume("ASSIGMENT", "<-", line);
+            Consume("ASSIGMENT", "<_", line);
             return new Instructions.Assignment
             {
                 VariableName = varriableName.Value,
@@ -398,55 +377,6 @@ namespace PixelWallE.Core
 
 
 
-
-
-
-        //metodos auxiliares de FuncionCall e Instruction
-        private bool ArgumentType(Expressions.Expression arg, string expected)
-        {
-            switch (expected)
-            {
-                case "number":
-                    return arg is Expressions.NumberLiteral;
-
-                case "color":
-                    if (arg is Expressions.VariableReference varRef)
-                        return IsKnownColor(varRef.Name);
-                    return false;
-
-                case "variable":
-                    return arg is Expressions.VariableReference;
-
-                case "expression":
-                    return true;
-
-                default:
-                    return false;
-            }
-        }
-        private bool IsKnownColor(string name)
-        {
-            switch (name)
-            {
-                case "Red":
-                case "Blue":
-                case "Green":
-                case "Yellow":
-                case "Orange":
-                case "Purple":
-                case "Black":
-                case "White":
-                case "Transparent":
-                    return true;
-                default:
-                    return false;
-            }
-        }
-
-
-
-
-
         //Add los argumentos al AST
 
         //Este método analiza suma y resta
@@ -544,12 +474,6 @@ namespace PixelWallE.Core
 
 
         //informacion booleana
-
-        private bool IsComma()
-        {
-            Token current = Peek();
-            return current.Type == "SYMBOL" && current.Value == ",";
-        }
         private bool IsAdditionOrSubtractionOperator()
         {
             Token current = Peek();
@@ -575,7 +499,7 @@ namespace PixelWallE.Core
         //revisa que viene despues
         private Token Peek(int offset = 0)
         {
-            if (position + offset >= tokens.Count) return new Token("EOF", "", tokens[tokens.Count - 1].Line);
+            if (position + offset >= tokens.Count) return null;
             return tokens[position + offset];
         }
         //toma el token, avanza el cursor y lo compara con lo deseado

@@ -2,7 +2,7 @@
 
 [ext_resource type="Texture2D" uid="uid://bfhh224pdsri4" path="res://Icons/icons8-check-mark-50.png" id="1_wtcfe"]
 [ext_resource type="Texture2D" uid="uid://rf51vx5plud1" path="res://Icons/icons8-google-play-2.svg" id="2_epypp"]
-[ext_resource type="Script" path="res://scripts/ButtonScripts/RunButton.cs" id="3_kdubu"]
+[ext_resource type="Script" uid="uid://diuojacd7gorw" path="res://scripts/ButtonScripts/RunButton.cs" id="3_kdubu"]
 [ext_resource type="Texture2D" uid="uid://brj2ib5tbndcs" path="res://Icons/icons8-add-bookmark-2.svg" id="3_q6r6c"]
 [ext_resource type="Texture2D" uid="uid://dvvpxsm26qg77" path="res://Icons/icons8-importar-50.png" id="4_kdubu"]
 

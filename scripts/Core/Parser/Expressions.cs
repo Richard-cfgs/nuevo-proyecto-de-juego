@@ -32,11 +32,6 @@ namespace PixelWallE.Core
             public string FunctionName;
             public List<Expression> Arguments;
         }
-        public class FunctionSignature
-        {
-            public int ExpectedCount;
-            public List<string> ExpectedTypes;
-        }
 
     }
 }

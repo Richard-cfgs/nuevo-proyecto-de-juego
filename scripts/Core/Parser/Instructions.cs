@@ -71,12 +71,6 @@ namespace PixelWallE.Core
         {
             public string Name;
         }
-        public class InstructionSignature
-        {
-            public int ExpectedCount;
-            public List<string> ExpectedTypes;
-        }
-
     }
 }
 
