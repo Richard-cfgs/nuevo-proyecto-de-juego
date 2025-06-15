@@ -20,6 +20,11 @@ namespace PixelWallE.Core
             public string Name;
         }
 
+        public class ValidColor : Expression
+        {
+            public string Color;
+        }
+
         public class BinaryExpression : Expression
         {
             public string Operator;

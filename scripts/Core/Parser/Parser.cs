@@ -1,543 +1,849 @@
 using System;
 using System.Collections.Generic;
+using System.Data;
+using Godot;
 using Godot.NativeInterop;
+using System.Linq;
+
 using PixelWallE.Core;
+
 namespace PixelWallE.Core
 {
-    public class Parser
-    {
-        private readonly List<Token> tokens;
-        private List<string> Errors;
-        private Dictionary<string, int> Labels;
-        private int position;
-
-        public Parser(List<Token> tokens)
-        {
-            this.tokens = tokens;
-            Errors = new();
-            Labels = new();
-            position = 0;
-            new Interprete(Parse(), Labels);
-        }
-
-        public List<Instructions.Statement> Parse()
-        {
-            List<Instructions.Statement> statements = new();
-
-            Token current = Peek();
-            if (current.Value == "Spawn")
-                statements.Add(ParseStatement(isFirstStatement: true));
-            else
-                Errors.Add($"Línea {current.Line}: el código siempre debe comenzar con Spawn");
-
-            while (!IsAtEnd())
-            {
-                Token before = Peek(); // token inicial de la línea
-                Instructions.Statement stmt = ParseStatement();
-                Token after = Peek();  // lo que viene después de parsear
-
-                if (stmt != null)
-                {
-                    // Verificamos si se intentó poner dos instrucciones en una línea
-                    if (before.Line == after.Line)
-                        Errors.Add($"Línea {before.Line}: solo puede haber una instrucción por línea.");
-
-                    statements.Add(stmt); // solo agregamos si no es null
-                }
-
-                //avanzar a la siguiente linea por si hubo algun error en la actual
-                while (!IsAtEnd() && Peek().Line == before.Line)
-                    Advance();
-            }
-            return statements;
-        }
-
-        private Instructions.Statement ParseStatement(bool isFirstStatement = false)
-        {
-            Token current = Peek(); // Miro el token actual, sin consumirlo
-
-            if (current.Type == "KEYWORD")
-            {
-                if (current.Value != "Spawn" || isFirstStatement == true)
-                    return ParseInstruction();
-                else
-                {
-                    Errors.Add($"Línea {current.Line}: solo se puede usar Spawn una vez al principio del codigo");
-                    return null;
-                }
-            }
-            else if (current.Type == "VARIABLE" && Peek(1).Type == "ASSIGMENT")
-            {
-                return ParseAssigment();
-            }
-            else if (current.Type == "CONTROL_FLOW" && current.Value == "GoTo")
-            {
-                return ParseGoTo();
-            }
-            else if (current.Type == "VARIABLE")
-            {
-                return ParseLabel();
-            }
-            Errors.Add($"Línea {current.Line}: no se reconoce la instrucción");
-            return null;
-        }
-
-
-
-
-
-        //este metodo analiza todas las Instrucciones del tipo KeyWord
-
-        private Instructions.Statement ParseInstruction()
-        {
-            Token keyword = Advance(); // Avanza y toma el nombre de la instrucción
-            int line = keyword.Line;
-
-            if (!Dictionarys.InstructionSignatures.TryGetValue(keyword.Value, out int count))
-            {
-                Errors.Add($"Línea {line}: instrucción desconocida '{keyword.Value}'");
-                return null;
-            }
-
-            Consume("SYMBOL", "(", line);
-
-            List<Expressions.Expression> args = new();
-
-            if (!Check("SYMBOL", ")"))
-            {
-                args.Add(ParseExpression());
-                while (Check("SYMBOL", ","))
-                {
-                    Advance(); // Consumimos la coma
-                    args.Add(ParseExpression());
-                }
-            }
-
-            Consume("SYMBOL", ")", line);
-
-            // Validación de cantidad
-            if (args.Count != count)
-            {
-                Errors.Add($"Línea {line}: '{keyword.Value}' espera {count} argumentos, pero recibió {args.Count}.");
-                return null;
-            }
-
-            switch (keyword.Value)
-            {
-                case "Spawn":
-                    return new Instructions.SpawnCommand
-                    {
-                        X = args[0],
-                        Y = args[1],
-                        Line = line
-                    };
-
-                case "Color":
-                    return new Instructions.ColorCommand
-                    {
-                        Color = ((Expressions.VariableReference)args[0]).Name,
-                        Line = line
-                    };
-
-                case "Size":
-                    return new Instructions.SizeCommand
-                    {
-                        Size = args[0],
-                        Line = line
-                    };
-
-                case "DrawLine":
-                    return new Instructions.DrawLineCommand
-                    {
-                        DirX = args[0],
-                        DirY = args[1],
-                        Distance = args[2],
-                        Line = line
-                    };
-
-                case "DrawCircle":
-                    return new Instructions.DrawCircleCommand
-                    {
-                        DirX = args[0],
-                        DirY = args[1],
-                        Radius = args[2],
-                        Line = line
-                    };
-
-                case "DrawRectangle":
-                    return new Instructions.DrawRectangleCommand
-                    {
-                        DirX = args[0],
-                        DirY = args[1],
-                        Distance = args[2],
-                        Width = args[3],
-                        Height = args[4],
-                        Line = line
-                    };
-
-                case "Fill":
-                    return new Instructions.FillCommand
-                    {
-                        Line = line
-                    };
-
-                default:
-                    Errors.Add($"Línea {line}: instrucción '{keyword.Value}' no está implementada.");
-                    return null;
-            }
-        }
-
-
-
-
-
-        // Este método analiza llamadas a funciones como GetActualX(), GetColorCount(...), etc.
-        private Expressions.Expression ParseFunctionCall(Token functionNameToken)
-        {
-            Consume("SYMBOL", "(", functionNameToken.Line);
-
-            List<Expressions.Expression> arguments = new();
-
-            if (!Check("SYMBOL", ")"))
-            {
-                arguments.Add(ParseExpression());
-
-                while (Check("SYMBOL", ","))
-                {
-                    Advance(); // Consumimos la coma
-                    arguments.Add(ParseExpression());
-                }
-            }
-
-            Consume("SYMBOL", ")", functionNameToken.Line);
-
-            // Validación semántica (cantidad y tipo de argumentos)
-            if (Dictionarys.FunctionSignatures.TryGetValue(functionNameToken.Value, out int count))
-            {
-                if (arguments.Count != count)
-                    Errors.Add($"Línea {functionNameToken.Line}: la función '{functionNameToken.Value}' espera {count} argumentos, pero recibió {arguments.Count}.");
-            }
-
-            return new Expressions.FunctionCall
-            {
-                FunctionName = functionNameToken.Value,
-                Arguments = arguments,
-                Line = functionNameToken.Line
-            };
-        }
-
-
-
-
-
-        //Este metodo analiza la asignacion de variables
-
-        private Instructions.Statement ParseAssigment()
-        {
-            Token varriableName = Advance();
-            int line = varriableName.Line;
-            Consume("ASSIGMENT", "<_", line);
-            return new Instructions.Assignment
-            {
-                VariableName = varriableName.Value,
-                Value = ParseExpression(),
-                Line = line
-            };
-        }
-
-
-        //Este metodo analiza los saltos condicionales
-        private Instructions.Statement ParseGoTo()
-        {
-            Token goToToken = Advance(); // Consumimos "GoTo"
-            int line = goToToken.Line;
-
-            // [Etiqueta]
-            Consume("SYMBOL", "[", line);
-
-            Token labelToken = Consume("VARIABLE", null, line);
-            string label = labelToken?.Value;
-
-
-            Consume("SYMBOL", "]", line);
-
-            // (Condición)
-            Consume("SYMBOL", "(", line);
-
-            Expressions.Expression condition = ParseAnd();
-
-            Consume("SYMBOL", ")", line);
-
-            return new Instructions.GoToCommand
-            {
-                Label = label,
-                Condition = condition,
-                Line = line
-            };
-        }
-
-
-        //este metodo analiza las etiquetas
-        private Instructions.Statement ParseLabel()
-        {
-            Token nameToken = Advance();
-            int line = nameToken.Line;
-
-            // Verificamos si el siguiente token está en otra línea
-            Token next = Peek();
-
-            if (next.Line == line)
-            {
-                Errors.Add($"Línea {line}: una etiqueta debe estar sola en una línea.");
-                return null;
-            }
-            if (Labels.TryGetValue(nameToken.Value, out int OuldNameTokenLine)) Errors.Add($"Línea {nameToken.Line}: la etiqueta {nameToken.Value} ya existe en la línea {OuldNameTokenLine}");
-            else Labels.Add(nameToken.Value, line);
-            return new Instructions.LabelDeclaration
-            {
-                Name = nameToken.Value,
-                Line = line
-            };
-        }
-
-
-
-
-
-
-
-        //metodos auxiliares del GoTo
-
-
-        private Expressions.Expression ParseAnd()
-        {
-            // Empezamos parseando lo de mayor prioridad: OR
-            Expressions.Expression left = ParseOr();
-
-            // Mientras siga habiendo '&&', seguimos combinando
-            while (Check("OPERATION", "&&"))
-            {
-                string op = Advance().Value;
-
-                Expressions.Expression right = ParseOr(); // cada lado puede ser ORs también
-
-                left = new Expressions.BinaryExpression
-                {
-                    Operator = op,
-                    Left = left,
-                    Right = right
-                };
-            }
-
-            return left;
-        }
-        private Expressions.Expression ParseOr()
-        {
-            // Empezamos con una comparación (==, <, >, etc.)
-            Expressions.Expression left = ParseComparison();
-
-            // Mientras haya más OR, seguimos encadenando
-            while (Check("OPERATION", "||"))
-            {
-                string op = Advance().Value;
-
-                Expressions.Expression right = ParseComparison();
-
-                left = new Expressions.BinaryExpression
-                {
-                    Operator = op,
-                    Left = left,
-                    Right = right
-                };
-            }
-
-            return left;
-        }
-
-        private Expressions.Expression ParseComparison()
-        {
-            Expressions.Expression left = ParseExpression();
-
-            if (Check("BOOLOPERATION"))
-            {
-                string op = Advance().Value;
-                Expressions.Expression right = ParseExpression();
-
-                return new Expressions.BinaryExpression
-                {
-                    Operator = op,
-                    Left = left,
-                    Right = right
-                };
-            }
-            return left;
-        }
-
-
-
-
-
-        //Add los argumentos al AST
-
-        //Este método analiza suma y resta
-        private Expressions.Expression ParseExpression()
-        {
-            Expressions.Expression leftSide = ParseTerm();
-            while (IsAdditionOrSubtractionOperator())
-            {
-                string operatorSymbol = Advance().Value;
-                Expressions.Expression rightSide = ParseTerm();
-                leftSide = new Expressions.BinaryExpression
-                {
-                    Operator = operatorSymbol,
-                    Left = leftSide,
-                    Right = rightSide
-                };
-            }
-            return leftSide;
-        }
-
-        // Este método analiza multiplicaciones, divisiones y módulo
-        private Expressions.Expression ParseTerm()
-        {
-            Expressions.Expression leftSide = ParseExponent();
-            while (IsMultiplicationOrDivisionOperator())
-            {
-                string operatorSymbol = Advance().Value;
-                Expressions.Expression rightSide = ParseExponent();
-                leftSide = new Expressions.BinaryExpression
-                {
-                    Operator = operatorSymbol,
-                    Left = leftSide,
-                    Right = rightSide
-                };
-            }
-            return leftSide;
-        }
-
-        // Este método analiza potencias (**) y es asociativo a la derecha
-        private Expressions.Expression ParseExponent()
-        {
-            Expressions.Expression baseExpression = ParsePrimary();
-            while (IsPowerOperator())
-            {
-                string operatorSymbol = Advance().Value;
-                Expressions.Expression exponent = ParseExponent();
-                baseExpression = new Expressions.BinaryExpression
-                {
-                    Operator = operatorSymbol,
-                    Left = baseExpression,
-                    Right = exponent
-                };
-            }
-            return baseExpression;
-        }
-
-        // Este método analiza los elementos más básicos de una expresión
-        private Expressions.Expression ParsePrimary()
-        {
-            Token token = Advance();
-            if (token.Type == "NUMBER")
-            {
-                return new Expressions.NumberLiteral
-                {
-                    Value = int.Parse(token.Value),
-                    Line = token.Line
-                };
-            }
-            if (token.Type == "FUNCTION")
-            {
-                return ParseFunctionCall(token);
-            }
-            if (token.Type == "VARIABLE")
-            {
-                return new Expressions.VariableReference
-                {
-                    Name = token.Value,
-                    Line = token.Line
-                };
-            }
-            if (token.Type == "SYMBOL" && token.Value == "(")
-            {
-                Expressions.Expression inner = ParseExpression();
-                Consume("SYMBOL", ")", token.Line);
-                return inner;
-            }
-            Errors.Add($"Línea {token.Line}: expresión no válida");
-            return null;
-        }
-
-
-
-
-
-
-
-        //informacion booleana
-        private bool IsAdditionOrSubtractionOperator()
-        {
-            Token current = Peek();
-            return current.Type == "OPERATION" && (current.Value == "+" || current.Value == "-");
-        }
-        private bool IsMultiplicationOrDivisionOperator()
-        {
-            Token current = Peek();
-            return current.Type == "OPERATION" && (current.Value == "*" || current.Value == "/" || current.Value == "%");
-        }
-        private bool IsPowerOperator()
-        {
-            Token current = Peek();
-            return current.Type == "OPERATION" && current.Value == "**";
-        }
-
-
-
-
-
-        //metodos auxiliares
-
-        //revisa que viene despues
-        private Token Peek(int offset = 0)
-        {
-            if (position + offset >= tokens.Count) return null;
-            return tokens[position + offset];
-        }
-        //toma el token, avanza el cursor y lo compara con lo deseado
-        private Token Consume(string expectedType, string expectedValue = null, int? expectedLine = null)
-        {
-            Token token = Advance();
-            if (token.Type != expectedType || (token.Value != expectedValue && expectedValue != null) || (token.Line != expectedLine && expectedLine != null))
-            {
-                Errors.Add($"Línea {token.Line}: Se esperaba '{expectedValue}' en la misma línea, pero se encontró '{token.Value}' en línea {token.Line}");
-                return null;
-            }
-            return token;
-        }
-
-        //revisa que viene delante y lo compara con lo deseado
-        private bool Check(string expectedType, string expectedValue = null)
-        {
-            if (IsAtEnd()) return false;
-
-            Token token = Peek();
-
-            bool typeMatches = token.Type == expectedType;
-            bool valueMatches = expectedValue == null || token.Value == expectedValue;
-
-            return typeMatches && valueMatches;
-        }
-        //toma el token y avanza el cursor
-        private Token Advance()
-        {
-            if (!IsAtEnd()) position++;
-            return tokens[position - 1];
-        }
-        //revisa que siga dentro de la lista de tokens
-        private bool IsAtEnd()
-        {
-            return position >= tokens.Count;
-        }
-
-    }
+	public class Parser
+	{
+		private readonly List<Token> tokens;
+		private List<(string, int)> Errors;
+		private Dictionary<string, int> Labels;
+		private int position;
+		private readonly Token EOFToken = new Token("EOF", "", -1);
+
+		public Parser(List<Token> tokens, List<(string, int)> ErrorsLex)
+		{
+			this.tokens = tokens;
+			Errors = new();
+			Labels = new();
+			position = 0;
+
+			GD.Print("=== DEBUG: Parsed Statements ===");
+			var statements = Parse();
+
+			PrintCombinedErrors(ErrorsLex, Errors);
+
+			PrintAST(statements);
+		}
+
+
+
+		//INICIO DE METODOS PARA IMPRIMIR
+
+
+
+
+
+
+
+		public void PrintCombinedErrors(List<(string Message, int Line)> lexerErrors,
+						  List<(string Message, int Line)> parserErrors)
+		{
+			GD.PrintRich("[color=#ff5555]=== ERRORES ===[/color]");
+
+			var shownMessages = new HashSet<string>();
+			var printedLines = new HashSet<int>();
+
+			// Función para limpiar mensajes como "(2) - ..."
+			string CleanMessage(string message)
+			{
+				if (message.StartsWith("(") && char.IsDigit(message[1]))
+				{
+					int endIdx = message.IndexOf(')');
+					if (endIdx > 0)
+					{
+						message = message.Substring(endIdx + 1).Trim();
+						if (message.StartsWith("-"))
+							message = message.Substring(1).Trim();
+					}
+				}
+				return message;
+			}
+
+			// Unir y ordenar errores por línea
+			var allErrors = lexerErrors.Select(e => ("Lexer", e.Message, e.Line))
+				.Concat(parserErrors.Select(e => ("Parser", e.Message, e.Line)))
+				.Select(e => (Source: e.Item1, Message: CleanMessage(e.Message), Line: e.Line))
+				.Distinct() // Eliminar errores duplicados exactos
+				.OrderBy(e => e.Line)
+				.ThenBy(e => e.Source) // Opcional: primero Lexer o Parser si están en la misma línea
+				.ToList();
+
+			int currentLine = -1;
+
+			foreach (var error in allErrors)
+			{
+				if (error.Line != currentLine)
+				{
+					GD.PrintRich($"[color=#ffff55]Línea {error.Line}:[/color]");
+					currentLine = error.Line;
+				}
+
+				string uniqueKey = $"{error.Source}:{error.Line}:{error.Message}";
+				if (!shownMessages.Contains(uniqueKey))
+				{
+					GD.Print($"- [{error.Source}] {error.Message}");
+					shownMessages.Add(uniqueKey);
+				}
+			}
+
+			if (allErrors.Count == 0)
+			{
+				GD.PrintRich("[color=#55ff55]No se encontraron errores.[/color]");
+			}
+		}
+
+
+
+
+
+
+
+
+
+
+
+		public void PrintAST(List<Instructions.Statement> statements)
+		{
+			GD.PrintRich("\n[color=#55ffff]=== ÁRBOL DE SINTÁXIS ABSTRACTA (AST) ===[/color]");
+
+			for (int i = 0; i < statements.Count; i++)
+			{
+				PrintNode(statements[i], "", i == statements.Count - 1);
+			}
+		}
+
+		private void PrintNode(object node, string indent = "", bool isLast = true)
+		{
+			string connector = isLast ? "└─" : "├─";
+			string currentIndent = indent + (isLast ? "   " : "│  ");
+			string childIndent = indent + (isLast ? "    " : "│   ");
+
+			if (node == null)
+			{
+				GD.PrintRich($"{indent}{connector} [color=#ff5555]NULL[/color]");
+				return;
+			}
+
+			string typeName = node.GetType().Name;
+			int line = GetLine(node);
+			string lineInfo = line != -1 ? $"(Línea: {line})" : "";
+
+			GD.PrintRich($"{indent}{connector} [color=#ff5555]{typeName}[/color] {lineInfo}");
+
+			switch (node)
+			{
+				case Instructions.SpawnCommand spawn:
+					GD.PrintRich($"{currentIndent}├─ X:");
+					PrintNode(spawn.X, childIndent, false);
+					GD.PrintRich($"{currentIndent}└─ Y:");
+					PrintNode(spawn.Y, childIndent, true);
+					break;
+
+				case Instructions.ColorCommand colorCmd:
+					GD.PrintRich($"{currentIndent}└─ Color: [color=#55ffff]{colorCmd.Color}[/color]");
+					break;
+
+				case Instructions.SizeCommand sizeCmd:
+					GD.PrintRich($"{currentIndent}└─ Size:");
+					PrintNode(sizeCmd.Size, childIndent, true);
+					break;
+
+				case Instructions.DrawLineCommand drawLine:
+					GD.PrintRich($"{currentIndent}├─ DirX:");
+					PrintNode(drawLine.DirX, childIndent, false);
+					GD.PrintRich($"{currentIndent}├─ DirY:");
+					PrintNode(drawLine.DirY, childIndent, false);
+					GD.PrintRich($"{currentIndent}└─ Distance:");
+					PrintNode(drawLine.Distance, childIndent, true);
+					break;
+
+				case Instructions.DrawCircleCommand drawCircle:
+					GD.PrintRich($"{currentIndent}├─ DirX:");
+					PrintNode(drawCircle.DirX, childIndent, false);
+					GD.PrintRich($"{currentIndent}├─ DirY:");
+					PrintNode(drawCircle.DirY, childIndent, false);
+					GD.PrintRich($"{currentIndent}└─ Radius:");
+					PrintNode(drawCircle.Radius, childIndent, true);
+					break;
+
+				case Instructions.DrawRectangleCommand drawRect:
+					GD.PrintRich($"{currentIndent}├─ DirX:");
+					PrintNode(drawRect.DirX, childIndent, false);
+					GD.PrintRich($"{currentIndent}├─ DirY:");
+					PrintNode(drawRect.DirY, childIndent, false);
+					GD.PrintRich($"{currentIndent}├─ Distance:");
+					PrintNode(drawRect.Distance, childIndent, false);
+					GD.PrintRich($"{currentIndent}├─ Width:");
+					PrintNode(drawRect.Width, childIndent, false);
+					GD.PrintRich($"{currentIndent}└─ Height:");
+					PrintNode(drawRect.Height, childIndent, true);
+					break;
+
+				case Instructions.FillCommand fill:
+					GD.PrintRich($"{currentIndent}└─ [color=#aaaaaa]No parameters[/color]");
+					break;
+
+				case Instructions.Assignment assign:
+					GD.PrintRich($"{currentIndent}├─ Variable: [color=#55ffff]{assign.VariableName}[/color]");
+					GD.PrintRich($"{currentIndent}└─ Value:");
+					PrintNode(assign.Value, childIndent, true);
+					break;
+
+				case Instructions.GoToCommand goTo:
+					GD.PrintRich($"{currentIndent}├─ Label: [color=#ffff55]{goTo.Label}[/color]");
+					GD.PrintRich($"{currentIndent}└─ Condition:");
+					PrintNode(goTo.Condition, childIndent, true);
+					break;
+
+				case Instructions.LabelDeclaration label:
+					GD.PrintRich($"{currentIndent}└─ Name: [color=#ffff55]{label.Name}[/color]");
+					break;
+
+				case Expressions.NumberLiteral num:
+					GD.PrintRich($"{currentIndent}└─ Value: [color=#55ff55]{num.Value}[/color]");
+					break;
+
+				case Expressions.VariableReference varRef:
+					GD.PrintRich($"{currentIndent}└─ Name: [color=#55ffff]{varRef.Name}[/color]");
+					break;
+
+				case Expressions.ValidColor color:
+					GD.PrintRich($"{currentIndent}└─ Color: [color=#55ffff]{color.Color}[/color]");
+					break;
+
+				case Expressions.BinaryExpression bin:
+					GD.PrintRich($"{currentIndent}├─ Left:");
+					PrintNode(bin.Left, childIndent, false);
+					GD.PrintRich($"{currentIndent}├─ Operator: [color=#ffaa00]{bin.Operator}[/color]");
+					GD.PrintRich($"{currentIndent}└─ Right:");
+					PrintNode(bin.Right, childIndent, true);
+					break;
+
+				case Expressions.FunctionCall func:
+					GD.PrintRich($"{currentIndent}├─ Function: [color=#ff5555]{func.FunctionName}[/color]");
+
+					if (func.Arguments != null && func.Arguments.Count > 0)
+					{
+						GD.PrintRich($"{currentIndent}└─ Arguments:");
+						string argsIndent = childIndent + (func.Arguments.Count == 1 ? "   " : "│  ");
+
+						for (int i = 0; i < func.Arguments.Count; i++)
+						{
+							PrintNode(func.Arguments[i], argsIndent, i == func.Arguments.Count - 1);
+						}
+					}
+					else
+					{
+						GD.PrintRich($"{currentIndent}└─ [color=#aaaaaa]No arguments[/color]");
+					}
+					break;
+
+				default:
+					GD.PrintRich($"{currentIndent}└─ [color=#ff5555]Tipo no implementado: {typeName}[/color]");
+					break;
+			}
+		}
+
+		private int GetLine(object node)
+		{
+			switch (node)
+			{
+				case Instructions.Statement stmt:
+					return stmt.Line;
+				case Expressions.Expression expr:
+					return expr.Line;
+				default:
+					return -1;
+			}
+		}
+
+
+
+
+
+
+		//FIN DE METODOS PARA IMPRIMIR
+
+
+
+
+
+
+		public List<Instructions.Statement> Parse()
+		{
+			List<Instructions.Statement> statements = new();
+
+			Token current = Peek();
+			if (current.Type == "EOF")
+			{
+				Errors.Add(("Error: No hay tokens para analizar", 1));
+				return statements;
+			}
+
+			if (current.Value == "Spawn")
+				statements.Add(ParseStatement(isFirstStatement: true));
+			else
+				Errors.Add(($"Línea {current.Line}: el código siempre debe comenzar con Spawn", current.Line));
+
+			while (!IsAtEnd())
+			{
+				Token bEOFre = Peek();
+				if (bEOFre.Type == "EOF") break;
+
+				Instructions.Statement stmt = ParseStatement();
+				Token after = Peek();
+
+				if (stmt != null)
+				{
+					//sino no llegue al final de la linea revisar si hay dos instrucciones para dar el error.
+					if (after.Type != "EOF" && bEOFre.Line == after.Line)
+					{
+						while (!IsAtEnd() && Peek().Line == bEOFre.Line)
+						{
+							Token token = Advance();
+							if (token.Type == "KEYWORD" || token.Type == "ASSIGMENT" || token.Type == "CONTROL_FLOW")
+							{
+								Errors.Add(($"Línea {bEOFre.Line}: solo puede haber una instrucción por línea.", bEOFre.Line));
+								break;
+							}
+						}
+					}
+					statements.Add(stmt);
+				}
+
+				while (!IsAtEnd() && Peek().Line == bEOFre.Line)
+					Advance();
+			}
+			return statements;
+		}
+
+		private Instructions.Statement ParseStatement(bool isFirstStatement = false)
+		{
+			Token current = Peek();
+			if (current.Type == "EOF")
+			{
+				Errors.Add(("Fin de archivo inesperado", tokens[^1].Line));
+				return null;
+			}
+
+			if (current.Type == "KEYWORD")
+			{
+				if (current.Value != "Spawn" || isFirstStatement == true)
+					return ParseInstruction();
+				else
+				{
+					Errors.Add(($"Línea {current.Line}: solo se puede usar Spawn una vez al principio del codigo", current.Line));
+					return null;
+				}
+			}
+			else if (current.Type == "VARIABLE" && Peek(1).Type == "ASSIGMENT")
+			{
+				return ParseAssigment();
+			}
+			else if (current.Type == "CONTROL_FLOW" && current.Value == "GoTo")
+			{
+				return ParseGoTo();
+			}
+			else if (current.Type == "VARIABLE")
+			{
+				return ParseLabel();
+			}
+			Errors.Add(($"Línea {current.Line}: no se reconoce la instrucción (Token inesperado: {current.Type} '{current.Value}')", current.Line));
+			return null;
+		}
+
+		private Instructions.Statement ParseInstruction()
+		{
+			Token keyword = Advance();
+			int line = keyword.Line;
+
+			if (!Dictionarys.InstructionSignatures.TryGetValue(keyword.Value, out int count))
+			{
+				Errors.Add(($"Línea {line}: instrucción desconocida '{keyword.Value}'", line));
+				return null;
+			}
+
+			Consume("SYMBOL", line, "(");
+
+			List<Expressions.Expression> args = new();
+
+			if (!Check("SYMBOL", ")"))
+			{
+				args.Add(ParseExpression(keyword.Value, line));
+				while (Check("SYMBOL", ","))
+				{
+					Advance();
+					var currentExpression = ParseExpression(keyword.Value, line);
+					if (currentExpression != null) args.Add(currentExpression);
+				}
+			}
+
+			Consume("SYMBOL", line, ")");
+
+			if (args.Count != count)
+			{
+				Errors.Add(($"Línea {line}: '{keyword.Value}' espera {count} argumentos, pero recibió {count - args.Count} inválidos.", line));
+				return null;
+			}
+
+			switch (keyword.Value)
+			{
+				case "Spawn":
+					return new Instructions.SpawnCommand
+					{
+						X = args[0],
+						Y = args[1],
+						Line = line
+					};
+
+				case "Color":
+					if (args[0] is Expressions.ValidColor color)
+					{
+						return new Instructions.ColorCommand
+						{
+							Color = color.Color,
+							Line = line
+						};
+					}
+					else
+					{
+						Errors.Add(($"Línea {line}: 'Color' espera un nombre de color , pero se recibió {args[0]?.GetType().Name}.", line));
+						return null;
+					}
+
+				case "Size":
+					return new Instructions.SizeCommand
+					{
+						Size = args[0],
+						Line = line
+					};
+
+				case "DrawLine":
+					return new Instructions.DrawLineCommand
+					{
+						DirX = args[0],
+						DirY = args[1],
+						Distance = args[2],
+						Line = line
+					};
+
+				case "DrawCircle":
+					return new Instructions.DrawCircleCommand
+					{
+						DirX = args[0],
+						DirY = args[1],
+						Radius = args[2],
+						Line = line
+					};
+
+				case "DrawRectangle":
+					return new Instructions.DrawRectangleCommand
+					{
+						DirX = args[0],
+						DirY = args[1],
+						Distance = args[2],
+						Width = args[3],
+						Height = args[4],
+						Line = line
+					};
+
+				case "Fill":
+					return new Instructions.FillCommand
+					{
+						Line = line
+					};
+
+				default:
+					Errors.Add(($"Línea {line}: instrucción '{keyword.Value}' no está implementada.", line));
+					return null;
+			}
+		}
+
+		private Expressions.Expression ParseFunctionCall(Token functionNameToken)
+		{
+			if (!Check("SYMBOL", "("))
+			{
+				Errors.Add(($"Línea {functionNameToken.Line}: Se esperaba '(' después de función", functionNameToken.Line));
+				return null;
+			}
+			Advance();
+
+			List<Expressions.Expression> arguments = new();
+
+			if (!Check("SYMBOL", ")"))
+			{
+				arguments.Add(ParseExpression(functionNameToken.Value, functionNameToken.Line));
+				while (Check("SYMBOL", ","))
+				{
+					Advance();
+					var currentExpression = ParseExpression(functionNameToken.Value, functionNameToken.Line);
+					if (currentExpression != null) arguments.Add(currentExpression);
+				}
+			}
+
+			if (!Check("SYMBOL", ")"))
+			{
+				Errors.Add(($"Línea {functionNameToken.Line}: Se esperaba ')'", functionNameToken.Line));
+				return null;
+			}
+			Advance();
+
+			if (Dictionarys.FunctionSignatures.TryGetValue(functionNameToken.Value, out int count))
+			{
+				if (arguments.Count != count)
+				{
+					Errors.Add(($"Línea {functionNameToken.Line}: la función '{functionNameToken.Value}' espera {count} argumentos, pero recibió {count - arguments.Count} argumentos inválidos.", functionNameToken.Line));
+					return null;
+				}
+			}
+			return new Expressions.FunctionCall
+			{
+				FunctionName = functionNameToken.Value,
+				Arguments = arguments,
+				Line = functionNameToken.Line
+			};
+		}
+
+		private Instructions.Statement ParseAssigment()
+		{
+			Token varriableName = Advance();
+			int line = varriableName.Line;
+			Consume("ASSIGMENT", line, "<_");
+			return new Instructions.Assignment
+			{
+				VariableName = varriableName.Value,
+				Value = ParseExpression(varriableName.Value, line),
+				Line = line
+			};
+		}
+
+		private Instructions.Statement ParseGoTo()
+		{
+			Token goToToken = Advance();
+			int line = goToToken.Line;
+
+			Consume("SYMBOL", line, "[");
+
+			Token labelToken = Consume("VARIABLE", line);
+
+			if (labelToken.Type == "EOF") return null;
+
+			Consume("SYMBOL", line, "]");
+
+			Consume("SYMBOL", line, "(");
+
+			Expressions.Expression condition = ParseAnd(goToToken.Value, line);
+
+			//buscar al menos un operador booleano
+			if (condition != null && !ContainsAnyBooleanOperator(condition))
+			{
+				Errors.Add(($"Línea {line}: La condición debe contener al menos un operador booleano (==, !=, >, <, >=, <=, &&, ||)", line));
+				return null;
+			}
+
+			Consume("SYMBOL", line, ")");
+
+			return new Instructions.GoToCommand
+			{
+				Label = labelToken.Value,
+				Condition = condition,
+				Line = line
+			};
+		}
+
+		private Instructions.Statement ParseLabel()
+		{
+			Token nameToken = Advance();
+			int line = nameToken.Line;
+
+			// Verificar si la etiqueta ya existe
+			if (Labels.ContainsKey(nameToken.Value))
+			{
+				Errors.Add(($"Línea {line}: La etiqueta '{nameToken.Value}' ya está definida (primera definición en línea {Labels[nameToken.Value]})", line));
+				return null;
+			}
+
+			// Agregar la etiqueta al diccionario con su número de línea
+			Labels.Add(nameToken.Value, line);
+
+			return new Instructions.LabelDeclaration
+			{
+				Name = nameToken.Value,
+				Line = line
+			};
+		}
+
+
+
+
+		private Expressions.Expression ParseAnd(string Name, int line)
+		{
+			Expressions.Expression left = ParseOr(Name, line);
+			if (left == null) return null;
+
+			while (Check("OPERATION", "&&"))
+			{
+				string op = Advance().Value;
+				Expressions.Expression right = ParseOr(Name, line);
+				if (right == null) return null;
+				left = new Expressions.BinaryExpression
+				{
+					Operator = op,
+					Left = left,
+					Right = right
+				};
+			}
+
+			return left;
+		}
+
+		private Expressions.Expression ParseOr(string Name, int line)
+		{
+			Expressions.Expression left = ParseComparison(Name, line);
+			if (left == null) return null;
+
+			while (Check("OPERATION", "||"))
+			{
+				string op = Advance().Value;
+				Expressions.Expression right = ParseComparison(Name, line);
+				if (right == null) return null;
+				left = new Expressions.BinaryExpression
+				{
+					Operator = op,
+					Left = left,
+					Right = right
+				};
+			}
+
+			return left;
+		}
+
+		private Expressions.Expression ParseComparison(string Name, int line)
+		{
+			Expressions.Expression left = ParseExpression(Name, line);
+			if (left == null) return null;
+
+			if (Check("BOOLOPERATION"))
+			{
+				string op = Advance().Value;
+				Expressions.Expression right = ParseExpression(Name, line);
+				if (right == null) return null;
+				return new Expressions.BinaryExpression
+				{
+					Operator = op,
+					Left = left,
+					Right = right
+				};
+			}
+			return left;
+		}
+
+
+
+
+		private Expressions.Expression ParseExpression(string Name, int line)
+		{
+			Expressions.Expression leftSide = ParseTerm(Name, line);
+			if (leftSide == null) return null;
+			while (IsAdditionOrSubtractionOperator())
+			{
+				string operatorSymbol = Advance().Value;
+				Expressions.Expression rightSide = ParseTerm(Name, line);
+				if (rightSide == null) return null;
+				leftSide = new Expressions.BinaryExpression
+				{
+					Operator = operatorSymbol,
+					Left = leftSide,
+					Right = rightSide
+				};
+			}
+			return leftSide;
+		}
+
+		private Expressions.Expression ParseTerm(string Name, int line)
+		{
+			Expressions.Expression leftSide = ParseExponent(Name, line);
+			if (leftSide == null) return null;
+			while (IsMultiplicationOrDivisionOperator())
+			{
+				string operatorSymbol = Advance().Value;
+				Expressions.Expression rightSide = ParseExponent(Name, line);
+				if (rightSide == null) return null;
+				leftSide = new Expressions.BinaryExpression
+				{
+					Operator = operatorSymbol,
+					Left = leftSide,
+					Right = rightSide
+				};
+			}
+			return leftSide;
+		}
+
+		private Expressions.Expression ParseExponent(string Name, int line)
+		{
+			Expressions.Expression baseExpression = ParsePrimary(Name, line);
+			if (baseExpression == null) return null;
+			while (IsPowerOperator())
+			{
+				string operatorSymbol = Advance().Value;
+				Expressions.Expression exponent = ParseExponent(Name, line);
+				if (exponent == null) return null;
+				baseExpression = new Expressions.BinaryExpression
+				{
+					Operator = operatorSymbol,
+					Left = baseExpression,
+					Right = exponent
+				};
+			}
+			return baseExpression;
+		}
+
+		private Expressions.Expression ParsePrimary(string Name, int line)
+		{
+			Token token = Advance();
+			if (token.Type == "EOF")
+			{
+				Errors.Add(($"Fin de archivo inesperado en '{Name}'", tokens[^1].Line));
+				return null;
+			}
+
+			if (token.Line != line)
+			{
+				Errors.Add(($"Linea {line}: se espera que toda la operación esté en la misma línea pero se encontro {token.Value} en la línea {token.Line}.", line));
+				position--;//regresar el token que consumi que es de la otra linea
+				return null;
+			}
+
+			if (token.Type == "NUMBER")
+			{
+				return new Expressions.NumberLiteral
+				{
+					Value = int.Parse(token.Value),
+					Line = token.Line
+				};
+			}
+			if (token.Type == "FUNCTION")
+			{
+				return ParseFunctionCall(token);
+			}
+			if (token.Type == "VARIABLE")
+			{
+				return new Expressions.VariableReference
+				{
+					Name = token.Value,
+					Line = token.Line
+				};
+			}
+
+			if (token.Type == "SYMBOL" && token.Value == "(")
+			{
+				Expressions.Expression inner = ParseExpression(Name, line);
+				Token closingParen = Consume("SYMBOL", token.Line, ")");
+				if (closingParen.Type == "EOF") return null;
+				return inner;
+			}
+
+			if (token.Type == "COLOR")
+			{
+				return new Expressions.ValidColor
+				{
+					Color = token.Value,
+					Line = token.Line
+				};
+			}
+			Errors.Add(($"Línea {token.Line}: {Name} tiene como argumento una expresión no válida '{token.Value}'", token.Line));
+			return null;
+		}
+
+
+
+
+
+		private bool IsAdditionOrSubtractionOperator()
+		{
+			Token current = Peek();
+			return current.Type != "EOF" && current.Type == "OPERATION" && (current.Value == "+" || current.Value == "-");
+		}
+
+		private bool IsMultiplicationOrDivisionOperator()
+		{
+			Token current = Peek();
+			return current.Type != "EOF" && current.Type == "OPERATION" && (current.Value == "*" || current.Value == "/" || current.Value == "%");
+		}
+
+		private bool IsPowerOperator()
+		{
+			Token current = Peek();
+			return current.Type != "EOF" && current.Type == "OPERATION" && current.Value == "**";
+		}
+
+		private Token Peek(int offset = 0)
+		{
+			if (position + offset >= tokens.Count) return EOFToken;
+			return tokens[position + offset];
+		}
+
+		private Token Advance()
+		{
+			if (IsAtEnd()) return EOFToken;
+			return tokens[position++];
+		}
+
+		private bool Check(string expectedType, string expectedValue = null)
+		{
+			Token token = Peek();
+			if (token.Type == "EOF") return false;
+
+			bool typeMatches = token.Type == expectedType;
+			bool valueMatches = expectedValue == null || token.Value == expectedValue;
+
+			return typeMatches && valueMatches;
+		}
+		private Token Consume(string expectedType, int expectedLine, string expectedValue = null)
+		{
+			Token token = Peek(); // Solo mirar, no avanzar todavía
+			if (token.Type == "EOF")
+			{
+				Errors.Add(($"Se esperaba {expectedType} pero se alcanzó el fin de archivo", tokens[^1].Line));
+				return token;
+			}
+
+			if (token.Type != expectedType || (expectedValue != null && token.Value != expectedValue) || token.Line != expectedLine)
+			{
+				Errors.Add(($"Línea {expectedLine}: Se esperaba '{expectedValue}' ({expectedType}) en la linea {expectedLine}, pero se encontró '{token.Value}' ({token.Type}) en la linea {token.Line}", expectedLine));
+				return EOFToken;
+			}
+			return Advance(); // Solo avanzar si todo está bien
+		}
+
+		private bool IsAtEnd()
+		{
+			return position >= tokens.Count;
+		}
+
+		//Metodo auxiliar de GoTo para saber si hay una operacion booleana en al condicion
+		private bool ContainsAnyBooleanOperator(Expressions.Expression expr)
+		{
+			if (expr is Expressions.BinaryExpression binExpr)
+			{
+				// Lista de todos los operadores booleanos
+				var booleanOps = new HashSet<string> { "==", "!=", ">", "<", ">=", "<=", "&&", "||" };
+
+				// Verificar si el operador actual es booleano
+				if (booleanOps.Contains(binExpr.Operator))
+					return true;
+
+				// Verificar recursivamente en los operandos
+				return ContainsAnyBooleanOperator(binExpr.Left) || ContainsAnyBooleanOperator(binExpr.Right);
+			}
+			return false;
+		}
+	}
 }
-
