@@ -1,12 +1,11 @@
 [gd_scene load_steps=10 format=3 uid="uid://c1qhd4tkrtbpx"]
 
-[ext_resource type="Texture2D" uid="uid://bfhh224pdsri4" path="res://Icons/icons8-check-mark-50.png" id="1_wtcfe"]
+[ext_resource type="Script" uid="uid://dfkinpyaagkv3" path="res://scripts/ButtonScripts/InputScripts/Input.cs" id="1_q6r6c"]
 [ext_resource type="Texture2D" uid="uid://rf51vx5plud1" path="res://Icons/icons8-google-play-2.svg" id="2_epypp"]
-[ext_resource type="Script" uid="uid://diuojacd7gorw" path="res://scripts/ButtonScripts/RunButton.cs" id="3_kdubu"]
+[ext_resource type="Script" uid="uid://diuojacd7gorw" path="res://scripts/ButtonScripts/RunButton/RunButton.cs" id="3_kdubu"]
 [ext_resource type="Texture2D" uid="uid://brj2ib5tbndcs" path="res://Icons/icons8-add-bookmark-2.svg" id="3_q6r6c"]
 [ext_resource type="Texture2D" uid="uid://dvvpxsm26qg77" path="res://Icons/icons8-importar-50.png" id="4_kdubu"]
-
-[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_0hol4"]
+[ext_resource type="Script" path="res://scripts/Core/Canvas/Canvas.cs" id="6_kdubu"]
 
 [sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_q6r6c"]
 
@@ -60,11 +59,12 @@ layout_mode = 2
 text = "Pixel-Wall
 "
 
-[node name="Button" type="Button" parent="Principal/Panel/Left"]
+[node name="SpinBox" type="SpinBox" parent="Principal/Panel/Left"]
 layout_mode = 2
-theme_override_styles/normal = SubResource("StyleBoxEmpty_0hol4")
-icon = ExtResource("1_wtcfe")
-icon_alignment = 1
+min_value = 1.0
+max_value = 500.0
+value = 100.0
+script = ExtResource("1_q6r6c")
 
 [node name="RunButton" type="Button" parent="Principal/Panel/Left"]
 layout_mode = 2
@@ -89,9 +89,14 @@ icon_alignment = 1
 custom_minimum_size = Vector2(1000, 0)
 layout_mode = 2
 size_flags_horizontal = 3
+theme_override_constants/separation = 15
 
 [node name="CodeEdit" type="CodeEdit" parent="Principal/Right"]
 custom_minimum_size = Vector2(400, 0)
 layout_mode = 2
-size_flags_horizontal = 3
 gutters_draw_line_numbers = true
+
+[node name="Canvas" type="Control" parent="Principal/Right"]
+layout_mode = 2
+size_flags_horizontal = 3
+script = ExtResource("6_kdubu")

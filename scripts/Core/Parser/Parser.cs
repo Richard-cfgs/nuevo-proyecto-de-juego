@@ -23,13 +23,13 @@ namespace PixelWallE.Core
 			Errors = new();
 			Labels = new();
 			position = 0;
-
-			GD.Print("=== DEBUG: Parsed Statements ===");
 			var statements = Parse();
 
 			PrintCombinedErrors(ErrorsLex, Errors);
 
 			PrintAST(statements);
+
+			if (ErrorsLex.Count == 0 && Errors.Count == 0) new Interprete(statements, Labels);
 		}
 
 

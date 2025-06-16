@@ -7,6 +7,7 @@ namespace PixelWallE.Core
 {
     public class Dictionarys()
     {
+        public static int CanvasSize = 100;
         public static readonly Dictionary<string, int> FunctionSignatures = new()
         {
             { "GetActualX", 0},
