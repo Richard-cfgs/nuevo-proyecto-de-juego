@@ -27,17 +27,13 @@ namespace PixelWallE.Core
 
 			PrintCombinedErrors(ErrorsLex, Errors);
 
-			PrintAST(statements);
-
 			if (ErrorsLex.Count == 0 && Errors.Count == 0) new Interprete(statements, Labels);
 		}
 
 
 
+
 		//INICIO DE METODOS PARA IMPRIMIR
-
-
-
 
 
 
@@ -102,167 +98,6 @@ namespace PixelWallE.Core
 
 
 
-
-
-
-
-
-
-
-		public void PrintAST(List<Instructions.Statement> statements)
-		{
-			GD.PrintRich("\n[color=#55ffff]=== ÁRBOL DE SINTÁXIS ABSTRACTA (AST) ===[/color]");
-
-			for (int i = 0; i < statements.Count; i++)
-			{
-				PrintNode(statements[i], "", i == statements.Count - 1);
-			}
-		}
-
-		private void PrintNode(object node, string indent = "", bool isLast = true)
-		{
-			string connector = isLast ? "└─" : "├─";
-			string currentIndent = indent + (isLast ? "   " : "│  ");
-			string childIndent = indent + (isLast ? "    " : "│   ");
-
-			if (node == null)
-			{
-				GD.PrintRich($"{indent}{connector} [color=#ff5555]NULL[/color]");
-				return;
-			}
-
-			string typeName = node.GetType().Name;
-			int line = GetLine(node);
-			string lineInfo = line != -1 ? $"(Línea: {line})" : "";
-
-			GD.PrintRich($"{indent}{connector} [color=#ff5555]{typeName}[/color] {lineInfo}");
-
-			switch (node)
-			{
-				case Instructions.SpawnCommand spawn:
-					GD.PrintRich($"{currentIndent}├─ X:");
-					PrintNode(spawn.X, childIndent, false);
-					GD.PrintRich($"{currentIndent}└─ Y:");
-					PrintNode(spawn.Y, childIndent, true);
-					break;
-
-				case Instructions.ColorCommand colorCmd:
-					GD.PrintRich($"{currentIndent}└─ Color: [color=#55ffff]{colorCmd.Color}[/color]");
-					break;
-
-				case Instructions.SizeCommand sizeCmd:
-					GD.PrintRich($"{currentIndent}└─ Size:");
-					PrintNode(sizeCmd.Size, childIndent, true);
-					break;
-
-				case Instructions.DrawLineCommand drawLine:
-					GD.PrintRich($"{currentIndent}├─ DirX:");
-					PrintNode(drawLine.DirX, childIndent, false);
-					GD.PrintRich($"{currentIndent}├─ DirY:");
-					PrintNode(drawLine.DirY, childIndent, false);
-					GD.PrintRich($"{currentIndent}└─ Distance:");
-					PrintNode(drawLine.Distance, childIndent, true);
-					break;
-
-				case Instructions.DrawCircleCommand drawCircle:
-					GD.PrintRich($"{currentIndent}├─ DirX:");
-					PrintNode(drawCircle.DirX, childIndent, false);
-					GD.PrintRich($"{currentIndent}├─ DirY:");
-					PrintNode(drawCircle.DirY, childIndent, false);
-					GD.PrintRich($"{currentIndent}└─ Radius:");
-					PrintNode(drawCircle.Radius, childIndent, true);
-					break;
-
-				case Instructions.DrawRectangleCommand drawRect:
-					GD.PrintRich($"{currentIndent}├─ DirX:");
-					PrintNode(drawRect.DirX, childIndent, false);
-					GD.PrintRich($"{currentIndent}├─ DirY:");
-					PrintNode(drawRect.DirY, childIndent, false);
-					GD.PrintRich($"{currentIndent}├─ Distance:");
-					PrintNode(drawRect.Distance, childIndent, false);
-					GD.PrintRich($"{currentIndent}├─ Width:");
-					PrintNode(drawRect.Width, childIndent, false);
-					GD.PrintRich($"{currentIndent}└─ Height:");
-					PrintNode(drawRect.Height, childIndent, true);
-					break;
-
-				case Instructions.FillCommand fill:
-					GD.PrintRich($"{currentIndent}└─ [color=#aaaaaa]No parameters[/color]");
-					break;
-
-				case Instructions.Assignment assign:
-					GD.PrintRich($"{currentIndent}├─ Variable: [color=#55ffff]{assign.VariableName}[/color]");
-					GD.PrintRich($"{currentIndent}└─ Value:");
-					PrintNode(assign.Value, childIndent, true);
-					break;
-
-				case Instructions.GoToCommand goTo:
-					GD.PrintRich($"{currentIndent}├─ Label: [color=#ffff55]{goTo.Label}[/color]");
-					GD.PrintRich($"{currentIndent}└─ Condition:");
-					PrintNode(goTo.Condition, childIndent, true);
-					break;
-
-				case Instructions.LabelDeclaration label:
-					GD.PrintRich($"{currentIndent}└─ Name: [color=#ffff55]{label.Name}[/color]");
-					break;
-
-				case Expressions.NumberLiteral num:
-					GD.PrintRich($"{currentIndent}└─ Value: [color=#55ff55]{num.Value}[/color]");
-					break;
-
-				case Expressions.VariableReference varRef:
-					GD.PrintRich($"{currentIndent}└─ Name: [color=#55ffff]{varRef.Name}[/color]");
-					break;
-
-				case Expressions.ValidColor color:
-					GD.PrintRich($"{currentIndent}└─ Color: [color=#55ffff]{color.Color}[/color]");
-					break;
-
-				case Expressions.BinaryExpression bin:
-					GD.PrintRich($"{currentIndent}├─ Left:");
-					PrintNode(bin.Left, childIndent, false);
-					GD.PrintRich($"{currentIndent}├─ Operator: [color=#ffaa00]{bin.Operator}[/color]");
-					GD.PrintRich($"{currentIndent}└─ Right:");
-					PrintNode(bin.Right, childIndent, true);
-					break;
-
-				case Expressions.FunctionCall func:
-					GD.PrintRich($"{currentIndent}├─ Function: [color=#ff5555]{func.FunctionName}[/color]");
-
-					if (func.Arguments != null && func.Arguments.Count > 0)
-					{
-						GD.PrintRich($"{currentIndent}└─ Arguments:");
-						string argsIndent = childIndent + (func.Arguments.Count == 1 ? "   " : "│  ");
-
-						for (int i = 0; i < func.Arguments.Count; i++)
-						{
-							PrintNode(func.Arguments[i], argsIndent, i == func.Arguments.Count - 1);
-						}
-					}
-					else
-					{
-						GD.PrintRich($"{currentIndent}└─ [color=#aaaaaa]No arguments[/color]");
-					}
-					break;
-
-				default:
-					GD.PrintRich($"{currentIndent}└─ [color=#ff5555]Tipo no implementado: {typeName}[/color]");
-					break;
-			}
-		}
-
-		private int GetLine(object node)
-		{
-			switch (node)
-			{
-				case Instructions.Statement stmt:
-					return stmt.Line;
-				case Expressions.Expression expr:
-					return expr.Line;
-				default:
-					return -1;
-			}
-		}
 
 
 

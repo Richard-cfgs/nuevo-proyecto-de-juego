@@ -1,11 +1,14 @@
-[gd_scene load_steps=10 format=3 uid="uid://c1qhd4tkrtbpx"]
+[gd_scene load_steps=13 format=3 uid="uid://c1qhd4tkrtbpx"]
 
 [ext_resource type="Script" uid="uid://dfkinpyaagkv3" path="res://scripts/ButtonScripts/InputScripts/Input.cs" id="1_q6r6c"]
 [ext_resource type="Texture2D" uid="uid://rf51vx5plud1" path="res://Icons/icons8-google-play-2.svg" id="2_epypp"]
 [ext_resource type="Script" uid="uid://diuojacd7gorw" path="res://scripts/ButtonScripts/RunButton/RunButton.cs" id="3_kdubu"]
 [ext_resource type="Texture2D" uid="uid://brj2ib5tbndcs" path="res://Icons/icons8-add-bookmark-2.svg" id="3_q6r6c"]
 [ext_resource type="Texture2D" uid="uid://dvvpxsm26qg77" path="res://Icons/icons8-importar-50.png" id="4_kdubu"]
-[ext_resource type="Script" path="res://scripts/Core/Canvas/Canvas.cs" id="6_kdubu"]
+[ext_resource type="Script" uid="uid://cm6phdvuwkuxj" path="res://scripts/ButtonScripts/ImportScript/ImportButton.cs" id="5_rj586"]
+[ext_resource type="Script" uid="uid://bh28vu468w6k" path="res://scripts/ButtonScripts/ExportScript/ExportButton.cs" id="6_d21ai"]
+[ext_resource type="Script" uid="uid://dcguyrpo6tdxc" path="res://scripts/CanvasScript/CanvasScript.cs" id="6_kdubu"]
+[ext_resource type="Script" uid="uid://3j3d4um3ulcb" path="res://scripts/MessageLog.cs" id="8_4d7sh"]
 
 [sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_q6r6c"]
 
@@ -52,7 +55,7 @@ offset_bottom = 648.0
 grow_vertical = 2
 size_flags_horizontal = 0
 size_flags_vertical = 3
-theme_override_constants/separation = 30
+theme_override_constants/separation = 80
 
 [node name="Label" type="Label" parent="Principal/Panel/Left"]
 layout_mode = 2
@@ -73,17 +76,33 @@ icon = ExtResource("2_epypp")
 icon_alignment = 1
 script = ExtResource("3_kdubu")
 
-[node name="Button3" type="Button" parent="Principal/Panel/Left"]
+[node name="ImportButton" type="Button" parent="Principal/Panel/Left"]
 layout_mode = 2
 theme_override_styles/normal = SubResource("StyleBoxEmpty_kdubu")
 icon = ExtResource("4_kdubu")
 icon_alignment = 1
+script = ExtResource("5_rj586")
 
-[node name="Button4" type="Button" parent="Principal/Panel/Left"]
+[node name="LineEdit" type="LineEdit" parent="Principal/Panel/Left/ImportButton"]
+layout_mode = 0
+offset_left = 1.0
+offset_top = 62.0
+offset_right = 87.0
+offset_bottom = 93.0
+
+[node name="ExportButton" type="Button" parent="Principal/Panel/Left"]
 layout_mode = 2
 theme_override_styles/normal = SubResource("StyleBoxEmpty_d21ai")
 icon = ExtResource("3_q6r6c")
 icon_alignment = 1
+script = ExtResource("6_d21ai")
+
+[node name="FileNameInputRoute" type="LineEdit" parent="Principal/Panel/Left/ExportButton"]
+layout_mode = 0
+offset_left = 1.0
+offset_top = 56.0
+offset_right = 88.0
+offset_bottom = 93.0
 
 [node name="Right" type="HBoxContainer" parent="Principal"]
 custom_minimum_size = Vector2(1000, 0)
@@ -91,10 +110,21 @@ layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 15
 
-[node name="CodeEdit" type="CodeEdit" parent="Principal/Right"]
+[node name="VBoxContainer" type="VBoxContainer" parent="Principal/Right"]
+layout_mode = 2
+theme_override_constants/separation = 15
+
+[node name="CodeEdit" type="CodeEdit" parent="Principal/Right/VBoxContainer"]
 custom_minimum_size = Vector2(400, 0)
 layout_mode = 2
+size_flags_horizontal = 4
+size_flags_vertical = 3
 gutters_draw_line_numbers = true
+
+[node name="MessageLog" type="RichTextLabel" parent="Principal/Right/VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+script = ExtResource("8_4d7sh")
 
 [node name="Canvas" type="Control" parent="Principal/Right"]
 layout_mode = 2

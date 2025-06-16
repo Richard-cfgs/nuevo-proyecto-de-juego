@@ -35,9 +35,8 @@ namespace PixelWallE.Core
 			Y = 0;
 			BrushSize = 1;
 			BrushColor = "Transparent";
-			new Canvas();
+			Canvas.Reset();
 			Run();
-			UpdateCanvas();
 		}
 
 		public void Run()
@@ -631,30 +630,6 @@ namespace PixelWallE.Core
 			return false;
 		}
 
-
-
-
-
-		//llamar a canvas
-
-		private void UpdateCanvas()
-		{
-			// 1. Obtener referencia al canvas
-			var canvas = GetNode<CanvasScript>("Principal/Right/Canvas"); // Ajusta la ruta
-
-			// 2. Convertir tu matriz a string[,]
-			string[,] pixelData = new string[CanvasHeight, CanvasWidth];
-			for (int y = 0; y < CanvasHeight; y++)
-			{
-				for (int x = 0; x < CanvasWidth; x++)
-				{
-					pixelData[y, x] = Canvas.GetPixel(x, y);
-				}
-			}
-
-			// 3. Actualizar
-			canvas.UpdatePixels(pixelData);
-		}
 
 
 	}

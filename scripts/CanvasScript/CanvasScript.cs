@@ -1,62 +1,48 @@
 using Godot;
 using System;
-using System.Collections.Generic;
+using PixelWallE.Core;
 
 public partial class CanvasScript : Control
 {
-	// Configuración
-	private int _pixelSize = 5;
-	private Dictionary<string, Color> _colors = new Dictionary<string, Color>()
-	{
-		{"White", Colors.White},
-		{"Black", Colors.Black},
-		{"Red", Colors.Red},
-		{"Blue", Colors.Blue},
-		{"Green", Colors.Green},
-		{"Transparent", Colors.Transparent}
-	};
-	private string[,] _pixelData;
+    public override void _Draw()
+    {
+        int canvasSize = Dictionarys.CanvasSize;
+        float cellWidth = Size.X / canvasSize;
+        float cellHeight = Size.Y / canvasSize;
 
-	public override void _Ready()
-	{
-		InitializeCanvas(100, 100); // Tamaño inicial
-	}
+        for (int y = 0; y < canvasSize; y++)
+        {
+            for (int x = 0; x < canvasSize; x++)
+            {
+                string colorName = Canvas.GetPixel(x, y);
+                Color drawColor = ColorFromName(colorName);
 
-	private void InitializeCanvas(int width, int height)
-	{
-		_pixelData = new string[height, width];
-		for (int y = 0; y < height; y++)
-		{
-			for (int x = 0; x < width; x++)
-			{
-				_pixelData[y, x] = "White";
-			}
-		}
-		QueueRedraw();
-	}
+                Rect2 rect = new Rect2(x * cellWidth, y * cellHeight, cellWidth, cellHeight);
+                DrawRect(rect, drawColor);
+            }
+        }
+    }
 
-	public override void _Draw()
-	{
-		for (int y = 0; y < _pixelData.GetLength(0); y++)
-		{
-			for (int x = 0; x < _pixelData.GetLength(1); x++)
-			{
-				string colorName = _pixelData[y, x];
-				if (colorName != "Transparent" && _colors.TryGetValue(colorName, out Color color))
-				{
-					DrawRect(new Rect2(x * _pixelSize, y * _pixelSize, _pixelSize, _pixelSize), color);
-				}
-			}
-		}
-	}
+    public void Redraw()
+    {
+        QueueRedraw();
+    }
 
-	// Llamado desde tu Interprete.cs
-	public void UpdatePixels(string[,] newPixels)
-	{
-		if (newPixels != null && newPixels.Length > 0)
-		{
-			_pixelData = newPixels;
-			QueueRedraw();
-		}
-	}
+    private Color ColorFromName(string name)
+    {
+        return name switch
+        {
+            "Red" => new Color(1, 0, 0),
+            "Green" => new Color(0, 1, 0),
+            "Blue" => new Color(0, 0, 1),
+            "Yellow" => new Color(1, 1, 0),
+            "Orange" => new Color(1, 0.65f, 0),
+            "Purple" => new Color(0.5f, 0, 0.5f),
+            "Black" => new Color(0, 0, 0),
+            "White" => new Color(1, 1, 1),
+            "Transparent" => new Color(0, 0, 0, 0),
+            _ => new Color(0.8f, 0.8f, 0.8f) // Gris por defecto
+        };
+    }
+
 }

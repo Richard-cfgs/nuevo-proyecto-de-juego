@@ -4,23 +4,25 @@ using System;
 
 public partial class RunButton : Button
 {
-	private const string Route = "/root/Main/Principal/Right/CodeEdit";
+	private const string CodeRoute = "/root/Main/Principal/Right/VBoxContainer/CodeEdit";
+	private const string CanvasRoute = "/root/Main/Principal/Right/Canvas";
+
 	private static CodeEdit _codeEdit;
+	private static CanvasScript _canvasScript;
 
 	public override void _Ready()
 	{
-		//Conectar señal "Pressed" al método GetCode
 		Pressed += GetCode;
-
-		//Obtener referencia al CodeEdit
-		_codeEdit = GetNode<CodeEdit>(Route);
+		_codeEdit = GetNode<CodeEdit>(CodeRoute);
+		_canvasScript = GetNode<CanvasScript>(CanvasRoute);
 	}
 
-	private static void GetCode()
+	private void GetCode()
 	{
-		//Obtener texto del CodeEdit
 		string code = _codeEdit.Text;
-		//LLamar a la clase Lexer
 		new Lexer(code);
+
+		// Redibujar el canvas después de interpretar
+		_canvasScript.Redraw();
 	}
 }
