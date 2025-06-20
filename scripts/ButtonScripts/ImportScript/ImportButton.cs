@@ -5,7 +5,7 @@ public partial class ImportButton : Button
 {
 	// Rutas de los nodos
 	private const string FileNameInputRoute = "/root/Main/Principal/Panel/Left/ImportButton/LineEdit";
-	private const string CodeEditRoute = "/root/Main/Principal/Right/VBoxContainer/CodeEditt";
+	private const string CodeEditRoute = "/root/Main/Principal/Right/VBoxContainer/CodeEdit";
 
 	private LineEdit _fileNameInput;
 	private CodeEdit _codeEdit;

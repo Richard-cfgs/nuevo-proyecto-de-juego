@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Data.Common;
 using System.Runtime.CompilerServices;
 using System.Text;
 using Godot;
@@ -137,7 +138,7 @@ namespace PixelWallE.Core
 
 						int radius = (BrushSize - 1) / 2;
 
-						for (int step = 0; step <= iDistance; step++)
+						for (int step = 0; step < iDistance; step++)
 						{
 							Canvas.SetPixel(X, Y, BrushColor);
 
@@ -485,7 +486,10 @@ namespace PixelWallE.Core
 			{
 				return EvaluateFunction(func);
 			}
-
+			if (expr is Expressions.ValidColor color)
+			{
+				return color.Color;
+			}
 			StopExecution($"Línea {expr.Line}: expresión desconocida.");
 			return null;
 		}
@@ -523,6 +527,7 @@ namespace PixelWallE.Core
 
 				case "GetColorCount":
 					// 1. Validar argumentos
+					GD.Print("hello");
 					if (args[0] is not string || args[1] is not int || args[2] is not int || args[3] is not int || args[4] is not int)
 					{
 						StopExecution($"Línea {line}: 'GetColorCount' espera (string color, int x1, int y1, int x2, int y2).");
@@ -557,20 +562,25 @@ namespace PixelWallE.Core
 					return count;
 
 				case "IsBrushColor":
-					if (args[0] is not string)
+					if (args[0] is string color)
 					{
-						StopExecution($"Línea {line}: 'IsBrushColor' espera 1 argumento de tipo color.");
-						return null;
+						if (IsKnownColor(color))
+						{
+							if (BrushColor == color) return 1;
+							else return 0;
+						}
 					}
-					return BrushColor == (string)args[0];
+					StopExecution($"Línea {line}: 'IsBrushColor' espera 1 argumento de tipo color.");
+					return null;
 
 				case "IsBrushSize":
-					if (args[0] is not int)
+					if (args[0] is int size)
 					{
-						StopExecution($"Línea {line}: 'IsBrushSize' espera 1 argumento numérico.");
-						return null;
+						if (BrushSize == size) return 1;
+						else return 0;
 					}
-					return BrushSize == (int)args[0];
+					StopExecution($"Línea {line}: 'IsBrushSize' espera 1 argumento numérico.");
+					return null;
 
 				case "IsCanvasColor":
 					// Verificar tipos de los argumentos
@@ -579,7 +589,11 @@ namespace PixelWallE.Core
 						StopExecution($"Línea {line}: 'IsCanvasColor' espera (string color, int vertical, int horizontal).");
 						return null;
 					}
-
+					if (!IsKnownColor((string)args[0]))
+					{
+						StopExecution($"Línea {line}: 'IsCanvasColor' espera (string color, int vertical, int horizontal).");
+						return null;
+					}
 					string targetColor = (string)args[0];
 					int verticalOffset = (int)args[1];
 					int horizontalOffset = (int)args[2];
@@ -592,7 +606,8 @@ namespace PixelWallE.Core
 
 					string pixelColor = Canvas.GetPixel(checkX, checkY);
 
-					return pixelColor == targetColor;
+					if (pixelColor == targetColor) return 1;
+					else return 0;
 
 				default:
 					StopExecution($"Línea {line}: función desconocida '{name}'");

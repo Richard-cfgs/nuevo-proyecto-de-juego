@@ -1,8 +1,9 @@
-[gd_scene load_steps=2 format=3 uid="uid://c7raumx3avs25"]
+[gd_scene load_steps=3 format=3 uid="uid://c7raumx3avs25"]
 
 [ext_resource type="PackedScene" uid="uid://c1qhd4tkrtbpx" path="res://node_2d.tscn" id="1_ig7tw"]
+[ext_resource type="Script" path="res://scripts/MensajesError/MessageLog.cs" id="2_0xm2m"]
 
 [node name="Main" instance=ExtResource("1_ig7tw")]
 
 [node name="MessageLog" parent="Principal/Right/VBoxContainer" index="1"]
-script = null
+script = ExtResource("2_0xm2m")

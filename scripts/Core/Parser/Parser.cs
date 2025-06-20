@@ -26,6 +26,7 @@ namespace PixelWallE.Core
 			var statements = Parse();
 
 			PrintCombinedErrors(ErrorsLex, Errors);
+			PrintAST(statements);
 
 			if (ErrorsLex.Count == 0 && Errors.Count == 0) new Interprete(statements, Labels);
 		}
@@ -34,6 +35,180 @@ namespace PixelWallE.Core
 
 
 		//INICIO DE METODOS PARA IMPRIMIR
+
+
+
+
+
+
+
+
+
+
+
+
+
+		public void PrintAST(List<Instructions.Statement> statements, bool showInConsole = true)
+		{
+			var output = new System.Text.StringBuilder();
+			output.AppendLine("[color=#55ffff]╔═══════════════════════════════╗[/color]");
+			output.AppendLine("[color=#55ffff]║  ÁRBOL DE SINTÁXIS ABSTRACT  ║[/color]");
+			output.AppendLine("[color=#55ffff]╚═══════════════════════════════╝[/color]");
+
+			if (statements == null || statements.Count == 0)
+			{
+				output.AppendLine("(AST vacío)");
+				if (showInConsole) GD.PrintRich(output.ToString());
+				return;
+			}
+
+			for (int i = 0; i < statements.Count; i++)
+			{
+				bool isLast = i == statements.Count - 1;
+				PrintStatement(statements[i], "", isLast, output);
+			}
+
+			if (showInConsole) GD.PrintRich(output.ToString());
+		}
+
+		private void PrintStatement(Instructions.Statement statement, string indent, bool isLast, System.Text.StringBuilder output)
+		{
+			string currentIndent = indent + (isLast ? "└── " : "├── ");
+			string childIndent = indent + (isLast ? "    " : "│   ");
+
+			if (statement == null)
+			{
+				output.AppendLine($"{currentIndent}[color=#ff5555](null)[/color]");
+				return;
+			}
+
+			string typeColor = statement is Instructions.LabelDeclaration ? "#ffaa00" :
+							  statement is Instructions.GoToCommand ? "#ff55ff" : "#55ff55";
+
+			switch (statement)
+			{
+				case Instructions.SpawnCommand spawn:
+					output.AppendLine($"{currentIndent}[color={typeColor}]SpawnCommand[/color] (Línea: [color=#5555ff]{spawn.Line}[/color])");
+					PrintExpression(spawn.X, childIndent + "X: ", false, output);
+					PrintExpression(spawn.Y, childIndent + "Y: ", true, output);
+					break;
+
+				case Instructions.ColorCommand color:
+					output.AppendLine($"{currentIndent}[color={typeColor}]ColorCommand[/color]: [color=#ffaa00]{color.Color}[/color] (Línea: [color=#5555ff]{color.Line}[/color])");
+					break;
+
+				case Instructions.SizeCommand size:
+					output.AppendLine($"{currentIndent}[color={typeColor}]SizeCommand[/color] (Línea: [color=#5555ff]{size.Line}[/color])");
+					PrintExpression(size.Size, childIndent, true, output);
+					break;
+
+				case Instructions.DrawLineCommand line:
+					output.AppendLine($"{currentIndent}[color={typeColor}]DrawLineCommand[/color] (Línea: [color=#5555ff]{line.Line}[/color])");
+					PrintExpression(line.DirX, childIndent + "DirX: ", false, output);
+					PrintExpression(line.DirY, childIndent + "DirY: ", false, output);
+					PrintExpression(line.Distance, childIndent + "Distance: ", true, output);
+					break;
+
+				case Instructions.DrawCircleCommand circle:
+					output.AppendLine($"{currentIndent}[color={typeColor}]DrawCircleCommand[/color] (Línea: [color=#5555ff]{circle.Line}[/color])");
+					PrintExpression(circle.DirX, childIndent + "DirX: ", false, output);
+					PrintExpression(circle.DirY, childIndent + "DirY: ", false, output);
+					PrintExpression(circle.Radius, childIndent + "Radius: ", true, output);
+					break;
+
+				case Instructions.DrawRectangleCommand rect:
+					output.AppendLine($"{currentIndent}[color={typeColor}]DrawRectangleCommand[/color] (Línea: [color=#5555ff]{rect.Line}[/color])");
+					PrintExpression(rect.DirX, childIndent + "DirX: ", false, output);
+					PrintExpression(rect.DirY, childIndent + "DirY: ", false, output);
+					PrintExpression(rect.Distance, childIndent + "Distance: ", false, output);
+					PrintExpression(rect.Width, childIndent + "Width: ", false, output);
+					PrintExpression(rect.Height, childIndent + "Height: ", true, output);
+					break;
+
+				case Instructions.FillCommand fill:
+					output.AppendLine($"{currentIndent}[color={typeColor}]FillCommand[/color] (Línea: [color=#5555ff]{fill.Line}[/color])");
+					break;
+
+				case Instructions.Assignment assign:
+					output.AppendLine($"{currentIndent}[color={typeColor}]Assignment[/color]: [color=#ffaa00]{assign.VariableName}[/color] = (Línea: [color=#5555ff]{assign.Line}[/color])");
+					PrintExpression(assign.Value, childIndent, true, output);
+					break;
+
+				case Instructions.GoToCommand gotoCmd:
+					output.AppendLine($"{currentIndent}[color={typeColor}]GoToCommand[/color] → [color=#ffaa00]{gotoCmd.Label}[/color] (Línea: [color=#5555ff]{gotoCmd.Line}[/color])");
+					output.AppendLine($"{childIndent}└── [color=#ff55ff]Condition:[/color]");
+					PrintExpression(gotoCmd.Condition, childIndent + "    ", true, output);
+					break;
+
+				case Instructions.LabelDeclaration label:
+					output.AppendLine($"{currentIndent}[color={typeColor}]LabelDeclaration[/color]: [color=#ffaa00]{label.Name}[/color] (Línea: [color=#5555ff]{label.Line}[/color])");
+					break;
+
+				default:
+					output.AppendLine($"{currentIndent}[color=#ff5555]Unknown Statement Type: {statement.GetType().Name}[/color] (Línea: [color=#5555ff]{statement.Line}[/color])");
+					break;
+			}
+		}
+
+		private void PrintExpression(Expressions.Expression expression, string indent, bool isLast, System.Text.StringBuilder output)
+		{
+			string currentIndent = indent + (isLast ? "└── " : "├── ");
+			string childIndent = indent + (isLast ? "    " : "│   ");
+
+			if (expression == null)
+			{
+				output.AppendLine($"{currentIndent}[color=#ff5555](null)[/color]");
+				return;
+			}
+
+			string typeColor = expression is Expressions.BinaryExpression ? "#55ffff" :
+							  expression is Expressions.FunctionCall ? "#ffaa00" : "#55ff55";
+
+			switch (expression)
+			{
+				case Expressions.NumberLiteral num:
+					output.AppendLine($"{currentIndent}[color={typeColor}]NumberLiteral[/color]: [color=#5555ff]{num.Value}[/color] (Línea: [color=#5555ff]{num.Line}[/color])");
+					break;
+
+				case Expressions.VariableReference varRef:
+					output.AppendLine($"{currentIndent}[color={typeColor}]VariableReference[/color]: [color=#ffaa00]{varRef.Name}[/color] (Línea: [color=#5555ff]{varRef.Line}[/color])");
+					break;
+
+				case Expressions.ValidColor color:
+					output.AppendLine($"{currentIndent}[color={typeColor}]ValidColor[/color]: [color=#ffaa00]{color.Color}[/color] (Línea: [color=#5555ff]{color.Line}[/color])");
+					break;
+
+				case Expressions.BinaryExpression binExpr:
+					output.AppendLine($"{currentIndent}[color={typeColor}]BinaryExpression[/color]: [color=#ff55ff]{binExpr.Operator}[/color] (Línea: [color=#5555ff]{binExpr.Line}[/color])");
+					PrintExpression(binExpr.Left, childIndent + "Left: ", false, output);
+					PrintExpression(binExpr.Right, childIndent + "Right: ", true, output);
+					break;
+
+				case Expressions.FunctionCall funcCall:
+					output.AppendLine($"{currentIndent}[color={typeColor}]FunctionCall[/color]: [color=#ffaa00]{funcCall.FunctionName}[/color] (Línea: [color=#5555ff]{funcCall.Line}[/color])");
+					for (int i = 0; i < funcCall.Arguments.Count; i++)
+					{
+						bool lastArg = i == funcCall.Arguments.Count - 1;
+						PrintExpression(funcCall.Arguments[i], childIndent + $"Arg{i + 1}: ", lastArg, output);
+					}
+					break;
+
+				default:
+					output.AppendLine($"{currentIndent}[color=#ff5555]Unknown Expression Type: {expression.GetType().Name}[/color] (Línea: [color=#5555ff]{expression.Line}[/color])");
+					break;
+			}
+		}
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -314,7 +489,8 @@ namespace PixelWallE.Core
 
 			if (!Check("SYMBOL", ")"))
 			{
-				arguments.Add(ParseExpression(functionNameToken.Value, functionNameToken.Line));
+				var current = ParseExpression(functionNameToken.Value, functionNameToken.Line);
+				if (current != null) arguments.Add(current);
 				while (Check("SYMBOL", ","))
 				{
 					Advance();
@@ -350,7 +526,7 @@ namespace PixelWallE.Core
 		{
 			Token varriableName = Advance();
 			int line = varriableName.Line;
-			Consume("ASSIGMENT", line, "<_");
+			Advance();
 			return new Instructions.Assignment
 			{
 				VariableName = varriableName.Value,
@@ -379,7 +555,7 @@ namespace PixelWallE.Core
 			//buscar al menos un operador booleano
 			if (condition != null && !ContainsAnyBooleanOperator(condition))
 			{
-				Errors.Add(($"Línea {line}: La condición debe contener al menos un operador booleano (==, !=, >, <, >=, <=, &&, ||)", line));
+				Errors.Add(($"Línea {line}: La condición debe contener al menos un operador booleano (==, !=, >, <, >=, <=)", line));
 				return null;
 			}
 
@@ -423,7 +599,7 @@ namespace PixelWallE.Core
 			Expressions.Expression left = ParseOr(Name, line);
 			if (left == null) return null;
 
-			while (Check("OPERATION", "&&"))
+			while (Check("BOOLOPERATION", "&&"))
 			{
 				string op = Advance().Value;
 				Expressions.Expression right = ParseOr(Name, line);
@@ -444,7 +620,7 @@ namespace PixelWallE.Core
 			Expressions.Expression left = ParseComparison(Name, line);
 			if (left == null) return null;
 
-			while (Check("OPERATION", "||"))
+			while (Check("BOOLOPERATION", "||"))
 			{
 				string op = Advance().Value;
 				Expressions.Expression right = ParseComparison(Name, line);
@@ -576,14 +752,26 @@ namespace PixelWallE.Core
 					Line = token.Line
 				};
 			}
-
 			if (token.Type == "SYMBOL" && token.Value == "(")
 			{
-				Expressions.Expression inner = ParseExpression(Name, line);
-				Token closingParen = Consume("SYMBOL", token.Line, ")");
+				int savedPosition = position;
+
+				Expressions.Expression inner = ParseAnd(Name, line);
+				Token closingParen = Peek();
+
+				if (closingParen.Type == "SYMBOL" && closingParen.Value == ")")
+				{
+					Advance();
+					return inner;
+				}
+				position = savedPosition;
+
+				inner = ParseExpression(Name, line);
+				closingParen = Consume("SYMBOL", token.Line, ")");
 				if (closingParen.Type == "EOF") return null;
 				return inner;
 			}
+
 
 			if (token.Type == "COLOR")
 			{
@@ -669,7 +857,7 @@ namespace PixelWallE.Core
 			if (expr is Expressions.BinaryExpression binExpr)
 			{
 				// Lista de todos los operadores booleanos
-				var booleanOps = new HashSet<string> { "==", "!=", ">", "<", ">=", "<=", "&&", "||" };
+				var booleanOps = new HashSet<string> { "==", "!=", ">", "<", ">=", "<=" };
 
 				// Verificar si el operador actual es booleano
 				if (booleanOps.Contains(binExpr.Operator))

@@ -55,15 +55,6 @@ namespace PixelWallE.Core
 			int line = 1;
 			var v = Tokenize(input, tokens, position, line);
 
-			// foreach (var x in Errors)
-			// {
-			// 	GD.Print(x);
-			// }
-			// foreach (var x in v)
-			// {
-			// 	GD.Print($"Type: {x.Type}  Value: {x.Value}  Line: {x.Line}");
-			// }
-
 			new Parser(v, Errors);
 		}
 		public List<Token> Tokenize(string input, List<Token> tokens, int position, int line)
@@ -79,7 +70,7 @@ namespace PixelWallE.Core
 				else if (currentChar == '\n') { line++; position++; continue; }
 
 				// Identificar números
-				if ((currentChar >= '0' && currentChar <= '9') || (currentChar == '-' && position + 1 < input.Length && tokens[^1].Type != "NUMBER" && input[position + 1] >= '0' && input[position + 1] <= '9'))
+				if ((currentChar >= '0' && currentChar <= '9') || (currentChar == '-' && position + 1 < input.Length && tokens[^1].Type != "NUMBER" && tokens[^1].Type != "VARIABLE" && tokens[^1].Value != ")" && input[position + 1] >= '0' && input[position + 1] <= '9'))
 				{
 					string number = "";
 					if (currentChar < '0' || currentChar > '9')
@@ -135,7 +126,7 @@ namespace PixelWallE.Core
 				if (position + 1 < input.Length)
 				{
 					string opera_2 = input[position].ToString() + input[position + 1].ToString();
-					if (opera_2 == "==" || opera_2 == ">=" || opera_2 == "<=" || opera_2 == "||" || opera_2 == "&&")
+					if (opera_2 == "==" || opera_2 == "!=" || opera_2 == ">=" || opera_2 == "<=" || opera_2 == "||" || opera_2 == "&&")
 					{
 						tokens.Add(new Token("BOOLOPERATION", opera_2, line));
 						position += 2;
