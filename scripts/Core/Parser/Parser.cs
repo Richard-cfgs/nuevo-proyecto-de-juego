@@ -17,16 +17,19 @@ namespace PixelWallE.Core
 		private int position;
 		private readonly Token EOFToken = new Token("EOF", "", -1);
 
+		private List<Instructions.Statement> statements;
+
+
 		public Parser(List<Token> tokens, List<(string, int)> ErrorsLex)
 		{
 			this.tokens = tokens;
 			Errors = new();
 			Labels = new();
+			statements = new();
 			position = 0;
-			var statements = Parse();
 
-			PrintCombinedErrors(ErrorsLex, Errors);
-			PrintAST(statements);
+			Parse();
+			PrintCombinedErrors(ErrorsLex);
 
 			if (ErrorsLex.Count == 0 && Errors.Count == 0) new Interprete(statements, Labels);
 		}
@@ -40,237 +43,28 @@ namespace PixelWallE.Core
 
 
 
-
-
-
-
-
-
-
-
-		public void PrintAST(List<Instructions.Statement> statements, bool showInConsole = true)
+		public void PrintCombinedErrors(List<(string, int)> lexErrors)
 		{
-			var output = new System.Text.StringBuilder();
-			output.AppendLine("[color=#55ffff]╔═══════════════════════════════╗[/color]");
-			output.AppendLine("[color=#55ffff]║  ÁRBOL DE SINTÁXIS ABSTRACT  ║[/color]");
-			output.AppendLine("[color=#55ffff]╚═══════════════════════════════╝[/color]");
+			// Combinar todos los errores
+			var allErrors = new List<(string message, int line)>();
+			allErrors.AddRange(lexErrors);
+			allErrors.AddRange(Errors);
 
-			if (statements == null || statements.Count == 0)
+			// Ordenar por número de línea
+			var sortedErrors = allErrors.OrderBy(e => e.Item2).ToList();
+
+			// Imprimir cada error
+			foreach (var error in sortedErrors)
 			{
-				output.AppendLine("(AST vacío)");
-				if (showInConsole) GD.PrintRich(output.ToString());
-				return;
+				GD.Print(error.message);
 			}
 
-			for (int i = 0; i < statements.Count; i++)
+			// Si no hay errores, mostrar mensaje de éxito
+			if (sortedErrors.Count == 0)
 			{
-				bool isLast = i == statements.Count - 1;
-				PrintStatement(statements[i], "", isLast, output);
-			}
-
-			if (showInConsole) GD.PrintRich(output.ToString());
-		}
-
-		private void PrintStatement(Instructions.Statement statement, string indent, bool isLast, System.Text.StringBuilder output)
-		{
-			string currentIndent = indent + (isLast ? "└── " : "├── ");
-			string childIndent = indent + (isLast ? "    " : "│   ");
-
-			if (statement == null)
-			{
-				output.AppendLine($"{currentIndent}[color=#ff5555](null)[/color]");
-				return;
-			}
-
-			string typeColor = statement is Instructions.LabelDeclaration ? "#ffaa00" :
-							  statement is Instructions.GoToCommand ? "#ff55ff" : "#55ff55";
-
-			switch (statement)
-			{
-				case Instructions.SpawnCommand spawn:
-					output.AppendLine($"{currentIndent}[color={typeColor}]SpawnCommand[/color] (Línea: [color=#5555ff]{spawn.Line}[/color])");
-					PrintExpression(spawn.X, childIndent + "X: ", false, output);
-					PrintExpression(spawn.Y, childIndent + "Y: ", true, output);
-					break;
-
-				case Instructions.ColorCommand color:
-					output.AppendLine($"{currentIndent}[color={typeColor}]ColorCommand[/color]: [color=#ffaa00]{color.Color}[/color] (Línea: [color=#5555ff]{color.Line}[/color])");
-					break;
-
-				case Instructions.SizeCommand size:
-					output.AppendLine($"{currentIndent}[color={typeColor}]SizeCommand[/color] (Línea: [color=#5555ff]{size.Line}[/color])");
-					PrintExpression(size.Size, childIndent, true, output);
-					break;
-
-				case Instructions.DrawLineCommand line:
-					output.AppendLine($"{currentIndent}[color={typeColor}]DrawLineCommand[/color] (Línea: [color=#5555ff]{line.Line}[/color])");
-					PrintExpression(line.DirX, childIndent + "DirX: ", false, output);
-					PrintExpression(line.DirY, childIndent + "DirY: ", false, output);
-					PrintExpression(line.Distance, childIndent + "Distance: ", true, output);
-					break;
-
-				case Instructions.DrawCircleCommand circle:
-					output.AppendLine($"{currentIndent}[color={typeColor}]DrawCircleCommand[/color] (Línea: [color=#5555ff]{circle.Line}[/color])");
-					PrintExpression(circle.DirX, childIndent + "DirX: ", false, output);
-					PrintExpression(circle.DirY, childIndent + "DirY: ", false, output);
-					PrintExpression(circle.Radius, childIndent + "Radius: ", true, output);
-					break;
-
-				case Instructions.DrawRectangleCommand rect:
-					output.AppendLine($"{currentIndent}[color={typeColor}]DrawRectangleCommand[/color] (Línea: [color=#5555ff]{rect.Line}[/color])");
-					PrintExpression(rect.DirX, childIndent + "DirX: ", false, output);
-					PrintExpression(rect.DirY, childIndent + "DirY: ", false, output);
-					PrintExpression(rect.Distance, childIndent + "Distance: ", false, output);
-					PrintExpression(rect.Width, childIndent + "Width: ", false, output);
-					PrintExpression(rect.Height, childIndent + "Height: ", true, output);
-					break;
-
-				case Instructions.FillCommand fill:
-					output.AppendLine($"{currentIndent}[color={typeColor}]FillCommand[/color] (Línea: [color=#5555ff]{fill.Line}[/color])");
-					break;
-
-				case Instructions.Assignment assign:
-					output.AppendLine($"{currentIndent}[color={typeColor}]Assignment[/color]: [color=#ffaa00]{assign.VariableName}[/color] = (Línea: [color=#5555ff]{assign.Line}[/color])");
-					PrintExpression(assign.Value, childIndent, true, output);
-					break;
-
-				case Instructions.GoToCommand gotoCmd:
-					output.AppendLine($"{currentIndent}[color={typeColor}]GoToCommand[/color] → [color=#ffaa00]{gotoCmd.Label}[/color] (Línea: [color=#5555ff]{gotoCmd.Line}[/color])");
-					output.AppendLine($"{childIndent}└── [color=#ff55ff]Condition:[/color]");
-					PrintExpression(gotoCmd.Condition, childIndent + "    ", true, output);
-					break;
-
-				case Instructions.LabelDeclaration label:
-					output.AppendLine($"{currentIndent}[color={typeColor}]LabelDeclaration[/color]: [color=#ffaa00]{label.Name}[/color] (Línea: [color=#5555ff]{label.Line}[/color])");
-					break;
-
-				default:
-					output.AppendLine($"{currentIndent}[color=#ff5555]Unknown Statement Type: {statement.GetType().Name}[/color] (Línea: [color=#5555ff]{statement.Line}[/color])");
-					break;
+				GD.Print("No se encontraron errores. El código se analizó correctamente.");
 			}
 		}
-
-		private void PrintExpression(Expressions.Expression expression, string indent, bool isLast, System.Text.StringBuilder output)
-		{
-			string currentIndent = indent + (isLast ? "└── " : "├── ");
-			string childIndent = indent + (isLast ? "    " : "│   ");
-
-			if (expression == null)
-			{
-				output.AppendLine($"{currentIndent}[color=#ff5555](null)[/color]");
-				return;
-			}
-
-			string typeColor = expression is Expressions.BinaryExpression ? "#55ffff" :
-							  expression is Expressions.FunctionCall ? "#ffaa00" : "#55ff55";
-
-			switch (expression)
-			{
-				case Expressions.NumberLiteral num:
-					output.AppendLine($"{currentIndent}[color={typeColor}]NumberLiteral[/color]: [color=#5555ff]{num.Value}[/color] (Línea: [color=#5555ff]{num.Line}[/color])");
-					break;
-
-				case Expressions.VariableReference varRef:
-					output.AppendLine($"{currentIndent}[color={typeColor}]VariableReference[/color]: [color=#ffaa00]{varRef.Name}[/color] (Línea: [color=#5555ff]{varRef.Line}[/color])");
-					break;
-
-				case Expressions.ValidColor color:
-					output.AppendLine($"{currentIndent}[color={typeColor}]ValidColor[/color]: [color=#ffaa00]{color.Color}[/color] (Línea: [color=#5555ff]{color.Line}[/color])");
-					break;
-
-				case Expressions.BinaryExpression binExpr:
-					output.AppendLine($"{currentIndent}[color={typeColor}]BinaryExpression[/color]: [color=#ff55ff]{binExpr.Operator}[/color] (Línea: [color=#5555ff]{binExpr.Line}[/color])");
-					PrintExpression(binExpr.Left, childIndent + "Left: ", false, output);
-					PrintExpression(binExpr.Right, childIndent + "Right: ", true, output);
-					break;
-
-				case Expressions.FunctionCall funcCall:
-					output.AppendLine($"{currentIndent}[color={typeColor}]FunctionCall[/color]: [color=#ffaa00]{funcCall.FunctionName}[/color] (Línea: [color=#5555ff]{funcCall.Line}[/color])");
-					for (int i = 0; i < funcCall.Arguments.Count; i++)
-					{
-						bool lastArg = i == funcCall.Arguments.Count - 1;
-						PrintExpression(funcCall.Arguments[i], childIndent + $"Arg{i + 1}: ", lastArg, output);
-					}
-					break;
-
-				default:
-					output.AppendLine($"{currentIndent}[color=#ff5555]Unknown Expression Type: {expression.GetType().Name}[/color] (Línea: [color=#5555ff]{expression.Line}[/color])");
-					break;
-			}
-		}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-		public void PrintCombinedErrors(List<(string Message, int Line)> lexerErrors,
-						  List<(string Message, int Line)> parserErrors)
-		{
-			GD.PrintRich("[color=#ff5555]=== ERRORES ===[/color]");
-
-			var shownMessages = new HashSet<string>();
-			var printedLines = new HashSet<int>();
-
-			// Función para limpiar mensajes como "(2) - ..."
-			string CleanMessage(string message)
-			{
-				if (message.StartsWith("(") && char.IsDigit(message[1]))
-				{
-					int endIdx = message.IndexOf(')');
-					if (endIdx > 0)
-					{
-						message = message.Substring(endIdx + 1).Trim();
-						if (message.StartsWith("-"))
-							message = message.Substring(1).Trim();
-					}
-				}
-				return message;
-			}
-
-			// Unir y ordenar errores por línea
-			var allErrors = lexerErrors.Select(e => ("Lexer", e.Message, e.Line))
-				.Concat(parserErrors.Select(e => ("Parser", e.Message, e.Line)))
-				.Select(e => (Source: e.Item1, Message: CleanMessage(e.Message), Line: e.Line))
-				.Distinct() // Eliminar errores duplicados exactos
-				.OrderBy(e => e.Line)
-				.ThenBy(e => e.Source) // Opcional: primero Lexer o Parser si están en la misma línea
-				.ToList();
-
-			int currentLine = -1;
-
-			foreach (var error in allErrors)
-			{
-				if (error.Line != currentLine)
-				{
-					GD.PrintRich($"[color=#ffff55]Línea {error.Line}:[/color]");
-					currentLine = error.Line;
-				}
-
-				string uniqueKey = $"{error.Source}:{error.Line}:{error.Message}";
-				if (!shownMessages.Contains(uniqueKey))
-				{
-					GD.Print($"- [{error.Source}] {error.Message}");
-					shownMessages.Add(uniqueKey);
-				}
-			}
-
-			if (allErrors.Count == 0)
-			{
-				GD.PrintRich("[color=#55ff55]No se encontraron errores.[/color]");
-			}
-		}
-
-
 
 
 
@@ -286,15 +80,14 @@ namespace PixelWallE.Core
 
 
 
-		public List<Instructions.Statement> Parse()
+		public void Parse()
 		{
-			List<Instructions.Statement> statements = new();
 
 			Token current = Peek();
 			if (current.Type == "EOF")
 			{
 				Errors.Add(("Error: No hay tokens para analizar", 1));
-				return statements;
+				return;
 			}
 
 			if (current.Value == "Spawn")
@@ -331,7 +124,7 @@ namespace PixelWallE.Core
 				while (!IsAtEnd() && Peek().Line == bEOFre.Line)
 					Advance();
 			}
-			return statements;
+			return;
 		}
 
 		private Instructions.Statement ParseStatement(bool isFirstStatement = false)
@@ -582,7 +375,7 @@ namespace PixelWallE.Core
 			}
 
 			// Agregar la etiqueta al diccionario con su número de línea
-			Labels.Add(nameToken.Value, line);
+			Labels.Add(nameToken.Value, statements.Count);
 
 			return new Instructions.LabelDeclaration
 			{

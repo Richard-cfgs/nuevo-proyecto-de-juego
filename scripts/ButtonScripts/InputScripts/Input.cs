@@ -13,7 +13,7 @@ public partial class Input : SpinBox
 
     private void OnValueChanged(double value)
     {
-        // Guarda el valor en una variable global (asegúrate de que "Global" existe)
+        // Guarda el valor en una variable global
         Dictionarys.CanvasSize = (int)value;
         GD.Print("Nuevo tamaño del canvas: ", Dictionarys.CanvasSize);
     }

@@ -527,7 +527,6 @@ namespace PixelWallE.Core
 
 				case "GetColorCount":
 					// 1. Validar argumentos
-					GD.Print("hello");
 					if (args[0] is not string || args[1] is not int || args[2] is not int || args[3] is not int || args[4] is not int)
 					{
 						StopExecution($"Línea {line}: 'GetColorCount' espera (string color, int x1, int y1, int x2, int y2).");

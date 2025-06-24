@@ -53,9 +53,9 @@ namespace PixelWallE.Core
 			Errors = new();
 			int position = 0;
 			int line = 1;
-			var v = Tokenize(input, tokens, position, line);
+			var buildTokens = Tokenize(input, tokens, position, line);
 
-			new Parser(v, Errors);
+			new Parser(buildTokens, Errors);
 		}
 		public List<Token> Tokenize(string input, List<Token> tokens, int position, int line)
 		{

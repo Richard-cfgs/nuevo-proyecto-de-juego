@@ -64,7 +64,7 @@ text = "Pixel-Wall
 [node name="SpinBox" type="SpinBox" parent="Principal/Panel/Left"]
 layout_mode = 2
 min_value = 1.0
-max_value = 500.0
+max_value = 1000.0
 value = 100.0
 script = ExtResource("1_q6r6c")
 
