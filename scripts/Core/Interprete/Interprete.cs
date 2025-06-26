@@ -130,7 +130,7 @@ namespace PixelWallE.Core
 							StopExecution($"Línea {drawLineCmd.Line}: La distancia tiene que ser positiva.");
 							return;
 						}
-						if (!IsValidPosition(X + (iDirX * iDistance), Y + (iDirY * iDistance)))
+						if (!IsValidPosition(X + (iDirY * iDistance), Y + (iDirX * iDistance)))
 						{
 							StopExecution($"Línea {drawLineCmd.Line}: Posición final fuera de la matriz.");
 							return;
@@ -201,10 +201,10 @@ namespace PixelWallE.Core
 						}
 
 						// 4. Calcular el centro del círculo (posición actual + dirección * radio)
-						int centerX = X + (iDirX * iRadius);
-						int centerY = Y + (iDirY * iRadius);
+						int centerX = X + (iDirY * iRadius);
+						int centerY = Y + (iDirX * iRadius);
 
-						if (!IsValidPosition(centerX, centerX))
+						if (!IsValidPosition(centerX, centerY))
 						{
 							StopExecution($"Línea {drawCircleCmd.Line}: Centro del circulo fuera de la matriz");
 							return;
@@ -249,7 +249,6 @@ namespace PixelWallE.Core
 							x++;
 						}
 
-						// 7. Mover Wall-E al centro del círculo (requerimiento explícito del PDF)
 						X = centerX;
 						Y = centerY;
 						break;
@@ -281,8 +280,8 @@ namespace PixelWallE.Core
 						}
 
 						// Calcular centro del rectángulo
-						int centerX = X + (iDirX * iDistance);
-						int centerY = Y + (iDirY * iDistance);
+						int centerX = X + (iDirY * iDistance);
+						int centerY = Y + (iDirX * iDistance);
 
 						if (!IsValidPosition(centerX, centerY))
 						{
