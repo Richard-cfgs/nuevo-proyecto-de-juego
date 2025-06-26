@@ -11,6 +11,7 @@ namespace PixelWallE.Core
 {
 	public class Parser
 	{
+		public static List<(string, int)> linkedList = new();
 		private readonly List<Token> tokens;
 		private List<(string, int)> Errors;
 		private Dictionary<string, int> Labels;
@@ -22,6 +23,7 @@ namespace PixelWallE.Core
 
 		public Parser(List<Token> tokens, List<(string, int)> ErrorsLex)
 		{
+			linkedList.Clear();
 			this.tokens = tokens;
 			Errors = new();
 			Labels = new();
@@ -31,15 +33,8 @@ namespace PixelWallE.Core
 			Parse();
 			PrintCombinedErrors(ErrorsLex);
 
-			if (ErrorsLex.Count == 0 && Errors.Count == 0) new Interprete(statements, Labels);
+			if (linkedList.Count == 0) new Interprete(statements, Labels);
 		}
-
-
-
-
-		//INICIO DE METODOS PARA IMPRIMIR
-
-
 
 
 
@@ -51,31 +46,8 @@ namespace PixelWallE.Core
 			allErrors.AddRange(Errors);
 
 			// Ordenar por número de línea
-			var sortedErrors = allErrors.OrderBy(e => e.Item2).ToList();
-
-			// Imprimir cada error
-			foreach (var error in sortedErrors)
-			{
-				GD.Print(error.message);
-			}
-
-			// Si no hay errores, mostrar mensaje de éxito
-			if (sortedErrors.Count == 0)
-			{
-				GD.Print("No se encontraron errores. El código se analizó correctamente.");
-			}
+			linkedList = allErrors.OrderBy(e => e.Item2).ToList();
 		}
-
-
-
-
-
-
-
-
-		//FIN DE METODOS PARA IMPRIMIR
-
-
 
 
 

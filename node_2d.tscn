@@ -1,4 +1,4 @@
-[gd_scene load_steps=12 format=3 uid="uid://c1qhd4tkrtbpx"]
+[gd_scene load_steps=13 format=3 uid="uid://c1qhd4tkrtbpx"]
 
 [ext_resource type="Script" uid="uid://dfkinpyaagkv3" path="res://scripts/ButtonScripts/InputScripts/Input.cs" id="1_q6r6c"]
 [ext_resource type="Texture2D" uid="uid://rf51vx5plud1" path="res://Icons/icons8-google-play-2.svg" id="2_epypp"]
@@ -8,6 +8,7 @@
 [ext_resource type="Script" uid="uid://cm6phdvuwkuxj" path="res://scripts/ButtonScripts/ImportScript/ImportButton.cs" id="5_rj586"]
 [ext_resource type="Script" uid="uid://bh28vu468w6k" path="res://scripts/ButtonScripts/ExportScript/ExportButton.cs" id="6_d21ai"]
 [ext_resource type="Script" uid="uid://dcguyrpo6tdxc" path="res://scripts/CanvasScript/CanvasScript.cs" id="6_kdubu"]
+[ext_resource type="Script" uid="uid://ctwx03ef6c77u" path="res://scripts/CanvasScript/MessageLog.cs" id="8_4d7sh"]
 
 [sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_q6r6c"]
 
@@ -123,6 +124,7 @@ gutters_draw_line_numbers = true
 [node name="MessageLog" type="RichTextLabel" parent="Principal/Right/VBoxContainer"]
 layout_mode = 2
 size_flags_vertical = 3
+script = ExtResource("8_4d7sh")
 
 [node name="Canvas" type="Control" parent="Principal/Right"]
 layout_mode = 2

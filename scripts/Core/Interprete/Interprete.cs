@@ -619,7 +619,7 @@ namespace PixelWallE.Core
 		//parar ejecucion
 		private void StopExecution(string errorMessage)
 		{
-			GD.PrintErr(errorMessage);
+			Parser.linkedList.Add((errorMessage, 0));
 			HasError = true;
 		}
 
