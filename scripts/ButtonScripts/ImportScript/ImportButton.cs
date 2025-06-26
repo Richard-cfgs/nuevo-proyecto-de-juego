@@ -28,7 +28,7 @@ public partial class ImportButton : Button
 	{
 		if (string.IsNullOrEmpty(fileName))
 		{
-			GD.PrintErr("Nombre de archivo vacío.");
+			PixelWallE.Core.Parser.linkedList.Add(("Nombre de archivo vacío.", 0));
 			return;
 		}
 
@@ -36,7 +36,7 @@ public partial class ImportButton : Button
 
 		if (!Godot.FileAccess.FileExists(fullPath))
 		{
-			GD.PrintErr($"El archivo '{fullPath}' no existe.");
+			PixelWallE.Core.Parser.linkedList.Add(($"El archivo '{fullPath}' no existe.", 0));
 			return;
 		}
 
@@ -44,13 +44,13 @@ public partial class ImportButton : Button
 
 		if (file == null)
 		{
-			GD.PrintErr($"No se pudo abrir el archivo: {fullPath}");
+			PixelWallE.Core.Parser.linkedList.Add(($"No se pudo abrir el archivo: {fullPath}", 0));
 			return;
 		}
 
 		string content = file.GetAsText();
 		_codeEdit.Text = content;
 
-		GD.Print($"Archivo '{fileName}.pw' importado correctamente.");
+		PixelWallE.Core.Parser.linkedList.Add(($"Archivo '{fileName}.pw' importado correctamente.", 0));
 	}
 }

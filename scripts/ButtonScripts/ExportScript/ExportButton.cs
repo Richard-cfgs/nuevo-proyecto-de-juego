@@ -24,7 +24,7 @@ public partial class ExportButton : Button
 
 		if (string.IsNullOrEmpty(rawName))
 		{
-			GD.PrintErr("Por favor, ingresá un nombre para el archivo.");
+			PixelWallE.Core.Parser.linkedList.Add(("Por favor, ingresá un nombre para el archivo.", 0));
 			return;
 		}
 
@@ -35,11 +35,11 @@ public partial class ExportButton : Button
 
 		if (f == null)
 		{
-			GD.PrintErr($"No se pudo abrir el archivo para escribir: {fileName}");
+			PixelWallE.Core.Parser.linkedList.Add(($"No se pudo abrir el archivo para escribir: {fileName}", 0));
 			return;
 		}
 
 		f.StoreString(code);
-		GD.Print($"Código exportado exitosamente a: {fileName}");
+		PixelWallE.Core.Parser.linkedList.Add(($"Código exportado exitosamente a: {fileName}", 0));
 	}
 }
