@@ -166,7 +166,7 @@ namespace PixelWallE.Core
 
 			if (args.Count != count)
 			{
-				Errors.Add(($"Línea {line}: '{keyword.Value}' espera {count} argumentos, pero recibió {count - args.Count} inválidos.", line));
+				Errors.Add(($"Línea {line}: '{keyword.Value}' espera {count} argumentos", line));
 				return null;
 			}
 
@@ -277,7 +277,7 @@ namespace PixelWallE.Core
 			{
 				if (arguments.Count != count)
 				{
-					Errors.Add(($"Línea {functionNameToken.Line}: la función '{functionNameToken.Value}' espera {count} argumentos, pero recibió {count - arguments.Count} argumentos inválidos.", functionNameToken.Line));
+					Errors.Add(($"Línea {functionNameToken.Line}: la función '{functionNameToken.Value}' espera {count} argumentos.", functionNameToken.Line));
 					return null;
 				}
 			}
