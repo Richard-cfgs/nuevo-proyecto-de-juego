@@ -15,6 +15,7 @@ namespace PixelWallE.Core
 		private readonly List<Token> tokens;
 		private List<(string, int)> Errors;
 		private Dictionary<string, int> Labels;
+		private Dictionary<string, int> PosLabels;
 		private int position;
 		private readonly Token EOFToken = new Token("EOF", "", -1);
 
@@ -27,6 +28,7 @@ namespace PixelWallE.Core
 			this.tokens = tokens;
 			Errors = new();
 			Labels = new();
+			PosLabels = new();
 			statements = new();
 			position = 0;
 
@@ -342,12 +344,13 @@ namespace PixelWallE.Core
 			// Verificar si la etiqueta ya existe
 			if (Labels.ContainsKey(nameToken.Value))
 			{
-				Errors.Add(($"Línea {line}: La etiqueta '{nameToken.Value}' ya está definida (primera definición en línea {Labels[nameToken.Value]})", line));
+				Errors.Add(($"Línea {line}: La etiqueta '{nameToken.Value}' ya está definida (primera definición en línea {PosLabels[nameToken.Value]})", line));
 				return null;
 			}
 
 			// Agregar la etiqueta al diccionario con su número de línea
 			Labels.Add(nameToken.Value, statements.Count);
+			PosLabels.Add(nameToken.Value, line);
 
 			return new Instructions.LabelDeclaration
 			{
